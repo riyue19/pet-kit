@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: ws://localhost:*"
+    />
+    <title>pet</title>
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; user-select: none; }
+      canvas { display: block; }
+      #notice {
+        position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 10px 12px;
+        font: 13px/1.5 "Microsoft YaHei UI", sans-serif; color: #fff;
+        background: rgba(30, 30, 40, 0.85); border-radius: 8px; white-space: pre-wrap; display: none;
+      }
+      #bubble {
+        /* left/right/top/max-width are set by positionBubble() in main.ts (upper-left of the head). */
+        position: absolute; top: 8px; right: 8px;
+        max-width: 60%; padding: 8px 12px; box-sizing: border-box;
+        font: 13px/1.5 "Microsoft YaHei UI", sans-serif; word-break: break-word; white-space: pre-wrap;
+        pointer-events: none; opacity: 0; transition: opacity 0.2s;
+        /* colors, border, radius, shadow and tail: pet-style.css */
+      }
+      #bubble.show { opacity: 1; }
+      /* Sticker picture under the reply text. */
+      #bubble img { display: block; max-width: min(140px, 100%); max-height: 140px; border-radius: 6px; }
+      #chat {
+        position: absolute; left: 8%; right: 8%; bottom: 0; height: 20%; margin: 0;
+        display: none; align-items: flex-end;
+      }
+      /* A textarea: long text wraps and the box grows upwards (height set by fitInput() in main.ts, up to max-height).
+         The bottom margin keeps a one-line box where the old single-line input sat (centred in #chat). */
+      #chat-input {
+        display: block; width: 100%; height: 34px; min-height: 34px; max-height: 132px; margin: 0 0 max(0px, calc(10vh - 17px));
+        padding: 6px 28px 6px 14px; box-sizing: border-box; outline: none; resize: none; overflow-y: auto; scrollbar-width: none;
+        font: 13px "Microsoft YaHei UI", sans-serif; line-height: 20px; white-space: pre-wrap; word-break: break-word;
+        opacity: 0.78; transition: opacity 0.15s, background 0.15s;
+        /* colors, border and radius: pet-style.css */
+      }
+      /* Microphone indicator: dim green while listening, bright with a halo while the user is talking. */
+      /* Picture waiting to be sent with the next message. */
+      #attach {
+        position: absolute; left: 0; bottom: calc(50% + 22px); display: none; align-items: center; gap: 6px;
+        padding: 4px 6px 4px 4px; background: rgba(30, 30, 40, 0.8); border-radius: 8px;
+        font: 11px "Microsoft YaHei UI", sans-serif; color: #fff;
+      }
+      #attach.on { display: flex; }
+      #attach img { height: 44px; max-width: 90px; object-fit: cover; border-radius: 5px; display: block; }
+      #attach button { all: unset; cursor: pointer; padding: 6px 8px; font-size: 14px; line-height: 1; opacity: 0.8; }
+      #attach button:hover { opacity: 1; }
+      #mic {
+        position: absolute; right: 12px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%;
+        background: rgba(110, 200, 130, 0.55); display: none; pointer-events: none; transition: box-shadow 0.15s, background 0.15s;
+      }
+      #mic.on { display: block; }
+      #mic.hearing { background: #4ade80; box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.35); }
+      /* Camera indicator (CLAUDE.md 4.3): always visible while the backend holds the webcam open. */
+      #cam {
+        position: fixed; left: 10px; top: 10px; display: none; align-items: center; gap: 5px; padding: 3px 8px 3px 6px;
+        font: 11px "Microsoft YaHei UI", sans-serif; color: #fff; background: rgba(190, 30, 45, 0.85);
+        border-radius: 10px; pointer-events: none; z-index: 50;
+      }
+      #cam.on { display: flex; }
+      #cam.seen { background: rgba(30, 140, 70, 0.85); }
+      #cam::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+      #chat-input:hover, #chat-input:focus { opacity: 1; }
+      /* Status value pops: left/bottom are set by positionStatus() in main.ts (right of the head); looks: pet-style.css. */
+      #status-fx {
+        position: absolute; left: 8px; bottom: 50%; display: flex; flex-direction: column-reverse; align-items: flex-start;
+        gap: 6px; pointer-events: none; z-index: 40;
+      }
+      #status-fx .status-pop { animation: status-pop 3.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; transform-origin: left bottom; }
+      #status-fx .status-pop.tier { animation-duration: 5.5s; }
+      #status-fx .sp-icon { animation: status-beat 0.9s ease-in-out 2; }
+      @keyframes status-pop {
+        0% { opacity: 0; transform: translateY(16px) scale(0.6); }
+        9% { opacity: 1; transform: translateY(0) scale(1.08); }
+        15% { transform: translateY(0) scale(1); }
+        82% { opacity: 1; transform: translateY(-10px) scale(1); }
+        100% { opacity: 0; transform: translateY(-36px) scale(0.96); }
+      }
+      @keyframes status-beat { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.5); } }
+    </style>
+    <link rel="stylesheet" href="./pet-style.css" />
+    <link rel="stylesheet" href="./fishing-hud.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <div id="bubble" class="pet-bubble"></div>
+    <form id="chat" autocomplete="off"><textarea id="chat-input" class="pet-input" maxlength="500" spellcheck="false" rows="1"></textarea><div id="mic"></div><div id="attach"><img alt="" /><span>将随下一句发送</span><button type="button" title="移除图片">×</button></div></form>
+    <div id="status-fx"></div>
+    <div id="fishing"></div>
+    <div id="cam">摄像头开启中</div>
+    <div id="notice"></div>
+    <script src="./live2d/live2dcubismcore.min.js"></script>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

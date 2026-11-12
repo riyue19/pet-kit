@@ -1,0 +1,116 @@
+# ============================================================
+# fish.yaml —— 钓鱼玩法的全部数值与内容配置（改这里，不要改代码）
+# 约定：time = any | dawn(5-8) | day(8-18) | dusk(18-21) | night(21-5)
+#       weather = any | sunny | cloudy | rain
+#       template / patterns 对应 assets/fish/ 里的鱼形模板与花纹
+#       eel 模板只支持 stripes / spots / belly / lateral / plain
+# ============================================================
+
+game:
+  wait_min_sec: 300             # 抛竿后最短等多久才有动静（秒，真实时间）；范围 180-21600
+  wait_max_sec: 10800           # 最长等多久（秒）；范围 180-43200。每一竿在两者之间随机，短的多、长的少
+  offline_catchup_cap: 24       # 离线补算最多多少竿
+  offline_catchup_max_hours: 8
+  pity_empty_streak: 4          # 连续空军这么多次后，下一竿必有鱼（保底）
+  bite_window_ms: 3000          # 稀有及以上的咬钩窗口
+  llm_budget_per_day: 30        # 钓鱼相关 LLM 调用日上限，超了只用台词池
+  animate_empty: false          # 空军是否播放动画（false = 只有一圈很小的水波，不打扰）
+  weather_change_hours: 3       # 模拟天气每隔多少小时重新抽一次
+  hud_animation: true           # false = 轻量档：桌宠旁的钓鱼小窗只换静态画面，不播动画
+  hud_placed: true              # 钓鱼小窗是否放在桌宠旁边（false = 收回，只在控制台的钓鱼画面里看）
+  hud_scale: 1.0                # 钓鱼小窗大小，0.6-2.5
+  # 以上 wait_min_sec / wait_max_sec / llm_budget_per_day / animate_empty / bite_window_ms /
+  # hud_animation / hud_placed / hud_scale 也可以在控制台「小游戏 → 挂机钓鱼」里改；控制台改过的值优先于这里。
+
+# ---------- 桌宠钓鱼时的性格（0~1） ----------
+persona:
+  patience: 0.5     # 耐心：越高，稀有鱼咬钩时你没来得及点，它自己抓住的概率越大
+  talkative: 0.5    # 话多：越高，钓到普通鱼时越常开口
+  mood: neutral     # 台词池的语气分组：neutral / happy / grumpy（fishing_lines.yaml 里可以加）
+
+# ---------- 模拟天气的权重 ----------
+weather_weights: {sunny: 50, cloudy: 30, rain: 20}
+
+# ---------- 结果大类的基础权重（相加不必为 100，按比例） ----------
+outcome_weights: {empty: 50, fish: 38, junk: 8, bottle: 4}
+
+# ---------- 稀有度：先按稀有度抽，再在该稀有度里按物种权重抽 ----------
+rarity:
+  common:    {base_weight: 70, label: 普通,   first_bonus: 5,   price_mult: 1.0}
+  uncommon:  {base_weight: 22, label: 少见,   first_bonus: 15,  price_mult: 1.0}
+  rare:      {base_weight: 7,  label: 稀有,   first_bonus: 50,  price_mult: 1.0, bite_window: true}
+  legendary: {base_weight: 1,  label: 传说,   first_bonus: 200, price_mult: 1.0, bite_window: true}
+
+# ---------- 地点 ----------
+locations:
+  pond:  {name: 小池塘, unlock_cost: 0,   requires_rod_level: 1}
+  river: {name: 河口,   unlock_cost: 100, requires_rod_level: 1}
+  sea:   {name: 夜海,   unlock_cost: 300, requires_rod_level: 2}
+
+# ---------- 饵（每竿消耗 1 个；用完自动退回"无饵"） ----------
+baits:
+  none:  {name: 无饵,   cost: 0,  fish_weight_mult: 1.0, rarity_mult: {}}
+  bread: {name: 面包屑, cost: 2,  fish_weight_mult: 1.10, rarity_mult: {}}
+  worm:  {name: 虫饵,   cost: 5,  fish_weight_mult: 1.20, rarity_mult: {}}
+  lure:  {name: 亮片,   cost: 10, fish_weight_mult: 1.10, rarity_mult: {rare: 1.5, legendary: 1.3}}
+
+# ---------- 鱼竿 ----------
+rods:
+  1: {name: 竹竿,   cost: 0,   size_mult: 1.00, rarity_mult: {rare: 1.0, legendary: 1.0}}
+  2: {name: 玻璃钢, cost: 150, size_mult: 1.10, rarity_mult: {rare: 1.2, legendary: 1.2}}
+  3: {name: 碳素竿, cost: 500, size_mult: 1.20, rarity_mult: {rare: 1.5, legendary: 1.5}}
+
+# ---------- 经济 ----------
+economy:
+  price_size_clamp: [0.6, 2.0]  # 售价 = base_price * clamp(size/mean) * (巨物 1.5)
+  trophy_price_mult: 1.5
+  trophy_sd: 1.5                # 尺寸 >= mean + 1.5*sd 视为"巨物"
+  release_affinity: 0.3         # 放生一条 +好感度（状态栏关着时忽略）
+  release_affinity_daily_cap: 1.5   # 每天靠放生最多涨这么多
+  luck_per_affinity_level: 0.02 # 好感度等级对稀有度的加成，封顶 +10%
+
+# ---------- 物种 ----------
+# size_cm: 均值 / 标准差 / 下限 / 上限；weight: 同稀有度内的相对权重
+# bait_bonus: 用了某种饵时该物种的权重倍数
+species:
+  # ---- 小池塘 ----
+  - {id: crucian,   name: 小鲫鱼, rarity: common,    template: round,   patterns: [belly],          locations: [pond],  time: [any],          weather: [any],  size_cm: {mean: 12, sd: 3,   min: 6,  max: 22},  base_price: 5,   weight: 10, bait_bonus: {bread: 1.5}}
+  - {id: loach,     name: 泥鳅,   rarity: common,    template: eel,     patterns: [spots],          locations: [pond],  time: [any],          weather: [any],  size_cm: {mean: 15, sd: 4,   min: 8,  max: 28},  base_price: 5,   weight: 8,  bait_bonus: {worm: 1.5}}
+  - {id: minnow,    name: 麦穗鱼, rarity: common,    template: slim,    patterns: [lateral],        locations: [pond],  time: [dawn, day],    weather: [any],  size_cm: {mean: 7,  sd: 1.5, min: 4,  max: 12},  base_price: 4,   weight: 10, bait_bonus: {bread: 1.5}}
+  - {id: carp,      name: 鲤鱼,   rarity: uncommon,  template: round,   patterns: [scales],         locations: [pond],  time: [any],          weather: [any],  size_cm: {mean: 35, sd: 10,  min: 18, max: 70},  base_price: 15,  weight: 10, bait_bonus: {bread: 1.3}}
+  - {id: snakehead, name: 黑鱼,   rarity: rare,      template: slim,    patterns: [spots, belly],   locations: [pond],  time: [night],        weather: [any],  size_cm: {mean: 50, sd: 12,  min: 28, max: 95},  base_price: 50,  weight: 10, bait_bonus: {worm: 1.5}}
+  - {id: koi,       name: 锦鲤,   rarity: legendary, template: round,   patterns: [spots],          locations: [pond],  time: [dawn, day],    weather: [rain], size_cm: {mean: 45, sd: 8,   min: 30, max: 80},  base_price: 300, weight: 10, bait_bonus: {}}
+  - {id: whitebait, name: 白条鱼, rarity: common,    template: slim,    patterns: [belly],          locations: [pond],  time: [day, dusk],    weather: [any],  size_cm: {mean: 14, sd: 3,   min: 8,  max: 24},  base_price: 4,   weight: 8,  bait_bonus: {bread: 1.3}}
+  - {id: yellowcat, name: 黄颡鱼, rarity: uncommon,  template: whisker, patterns: [spots],          locations: [pond],  time: [dusk, night],  weather: [any],  size_cm: {mean: 18, sd: 4,   min: 10, max: 32},  base_price: 16,  weight: 8,  bait_bonus: {worm: 1.8}}
+  # ---- 河口 ----
+  - {id: bitterling, name: 鳑鲏,  rarity: common,    template: round,   patterns: [lateral],        locations: [river], time: [dawn, day],    weather: [any],  size_cm: {mean: 6,  sd: 1.2, min: 3,  max: 10},  base_price: 5,   weight: 8,  bait_bonus: {bread: 1.5}}
+  - {id: bream,     name: 鳊鱼,   rarity: uncommon,  template: flat,    patterns: [scales],         locations: [river], time: [day, dusk],    weather: [any],  size_cm: {mean: 28, sd: 6,   min: 15, max: 50},  base_price: 17,  weight: 8,  bait_bonus: {bread: 1.4}}
+  - {id: sturgeon,  name: 鲟鱼,   rarity: legendary, template: slim,    patterns: [stripes, belly], locations: [river], time: [night],        weather: [rain], size_cm: {mean: 110, sd: 20, min: 70, max: 180}, base_price: 320, weight: 10, bait_bonus: {}}
+  - {id: grasscarp, name: 草鱼,   rarity: common,    template: slim,    patterns: [scales],         locations: [river], time: [any],          weather: [any],  size_cm: {mean: 40, sd: 10,  min: 20, max: 80},  base_price: 6,   weight: 10, bait_bonus: {bread: 1.3}}
+  - {id: trout,     name: 鳟鱼,   rarity: uncommon,  template: slim,    patterns: [spots, belly],   locations: [river], time: [dawn, dusk],   weather: [any],  size_cm: {mean: 30, sd: 6,   min: 18, max: 55},  base_price: 18,  weight: 10, bait_bonus: {lure: 1.5}}
+  - {id: catfish,   name: 鲶鱼,   rarity: uncommon,  template: whisker, patterns: [],               locations: [river], time: [any],          weather: [any],  size_cm: {mean: 45, sd: 12,  min: 25, max: 90},  base_price: 16,  weight: 10, bait_bonus: {worm: 2.0}}
+  - {id: perch,     name: 鲈鱼,   rarity: uncommon,  template: slim,    patterns: [stripes, belly], locations: [river], time: [day, dusk],    weather: [any],  size_cm: {mean: 32, sd: 7,   min: 18, max: 60},  base_price: 17,  weight: 8,  bait_bonus: {lure: 1.5}}
+  - {id: mandarin,  name: 鳜鱼,   rarity: rare,      template: round,   patterns: [stripes],        locations: [river], time: [dawn, dusk],   weather: [cloudy, rain], size_cm: {mean: 35, sd: 6, min: 22, max: 55}, base_price: 55, weight: 10, bait_bonus: {lure: 1.5}}
+  - {id: rivereel,  name: 河鳗,   rarity: rare,      template: eel,     patterns: [belly],          locations: [river], time: [night],        weather: [any],  size_cm: {mean: 70, sd: 15,  min: 40, max: 120}, base_price: 60,  weight: 10, bait_bonus: {worm: 1.5}}
+  # ---- 夜海 ----
+  - {id: sardine,   name: 沙丁鱼, rarity: common,    template: slim,    patterns: [lateral],        locations: [sea],   time: [dawn, day],    weather: [any],  size_cm: {mean: 14, sd: 2.5, min: 8,  max: 22},  base_price: 5,   weight: 10, bait_bonus: {bread: 1.5}}
+  - {id: pomfret,   name: 鲳鱼,   rarity: uncommon,  template: flat,    patterns: [belly],          locations: [sea],   time: [any],          weather: [any],  size_cm: {mean: 28, sd: 5,   min: 18, max: 45},  base_price: 20,  weight: 10, bait_bonus: {}}
+  - {id: flounder,  name: 鲽鱼,   rarity: uncommon,  template: flat,    patterns: [spots],          locations: [sea],   time: [any],          weather: [any],  size_cm: {mean: 30, sd: 6,   min: 18, max: 50},  base_price: 19,  weight: 8,  bait_bonus: {worm: 1.5}}
+  - {id: conger,    name: 海鳗,   rarity: rare,      template: eel,     patterns: [stripes, belly], locations: [sea],   time: [night],        weather: [any],  size_cm: {mean: 90, sd: 20,  min: 50, max: 150}, base_price: 65,  weight: 10, bait_bonus: {worm: 1.5}}
+  - {id: mackerel,  name: 鲭鱼,   rarity: common,    template: slim,    patterns: [stripes],        locations: [sea],   time: [any],          weather: [any],  size_cm: {mean: 30, sd: 5,   min: 18, max: 48},  base_price: 6,   weight: 8,  bait_bonus: {lure: 1.3}}
+  - {id: seabass,   name: 海鲈,   rarity: uncommon,  template: slim,    patterns: [spots],          locations: [sea],   time: [dusk, night],  weather: [any],  size_cm: {mean: 45, sd: 9,   min: 25, max: 80},  base_price: 22,  weight: 8,  bait_bonus: {lure: 1.5}}
+  - {id: stingray,  name: 魟鱼,   rarity: rare,      template: flat,    patterns: [],               locations: [sea],   time: [dusk],         weather: [cloudy, rain], size_cm: {mean: 60, sd: 12, min: 35, max: 100}, base_price: 70, weight: 10, bait_bonus: {worm: 1.5}}
+  - {id: tuna,      name: 金枪鱼, rarity: rare,      template: round,   patterns: [belly],          locations: [sea],   time: [dawn, day],    weather: [sunny], size_cm: {mean: 95, sd: 18, min: 60, max: 160}, base_price: 75, weight: 10, bait_bonus: {lure: 1.5}}
+  - {id: moonfish, name: 月光鱼, rarity: legendary, template: slim,    patterns: [lateral, spots], locations: [sea],   time: [night],        weather: [sunny], size_cm: {mean: 40, sd: 6,  min: 28, max: 60},  base_price: 350, weight: 10, bait_bonus: {}}
+
+# ---------- 杂物（不进图鉴，只进"杂物统计"，可卖废品价） ----------
+junk:
+  - {id: boot, name: 破靴子, icon: junk/boot.svg, sell_price: 1}
+  - {id: can,  name: 易拉罐, icon: junk/can.svg,  sell_price: 1}
+
+# ---------- 漂流瓶 ----------
+bottle:
+  icon: junk/bottle.svg
+  pool_min: 20                  # 本地信件池低于这个数就在空闲时批量生成一批
+  batch_size: 10
+  reward_coins: {min: 2, max: 8}

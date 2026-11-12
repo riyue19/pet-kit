@@ -1,0 +1,180 @@
+/* ---------- Fishing HUD (.fishing-hud; #fishing next to the pet's head, and the console's fishing scene; logic: fishing-hud.ts) ----------
+ * data-state: off | idle | cast | wait | bite | reel | result | escape | empty
+ * classes: .on (shown), .lite (no animation), .paused (window hidden), .minimal (empty cast: ripple only)
+ * data-rarity on a fish result: common | uncommon | rare | legendary
+ * Variables you may override from custom CSS: --fh-ink, --fh-paper, --fh-panel, --fh-rare, --fh-legend.
+ * Only transform / opacity are animated (compositor work), plus the line's short path morphs.
+ */
+.fishing-hud {
+  --fh-ink: #14110f;
+  --fh-paper: #f4efe4;
+  --fh-panel: rgba(244, 239, 228, 0.94);
+  --fh-uncommon: #3f8f6b;
+  --fh-rare: #7a5cff;
+  --fh-legend: #e0a100;
+  position: absolute; left: 8px; top: 50%; width: 132px; aspect-ratio: 2 / 1; display: none;
+  pointer-events: none; z-index: 39; font: 11px/1.25 'Microsoft YaHei UI', sans-serif; color: var(--fh-ink);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.22));
+}
+.fishing-hud.on { display: block; }
+/* Inside the console's fishing scene: fills its container, always shown. */
+.fishing-hud.fh-embed { position: relative; left: auto; top: auto; width: 100%; display: block; z-index: auto; }
+.fishing-hud[data-state='bite'] { pointer-events: auto; cursor: pointer; }
+.fishing-hud .fh-scene, .fishing-hud .fh-sparks { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.fishing-hud .fh-scene * { transform-box: fill-box; transform-origin: center; }
+.fishing-hud .fh-panel { fill: var(--fh-panel); stroke: var(--fh-ink); stroke-width: 1.5; }
+.fishing-hud .fh-rod { stroke: var(--fh-ink); stroke-width: 2.4; stroke-linecap: round; fill: none; }
+.fishing-hud .fh-water { stroke: var(--fh-ink); stroke-width: 1.4; fill: none; }
+.fishing-hud .fh-water2 { stroke-width: 1; opacity: 0.35; stroke-dasharray: 3 3; }
+.fishing-hud .fh-ripple { fill: none; stroke: var(--fh-ink); stroke-width: 0.8; opacity: 0; }
+.fishing-hud .fh-line { stroke: var(--fh-ink); stroke-width: 1; fill: none; stroke-dasharray: 100; stroke-dashoffset: 0; }
+.fishing-hud .fh-float path { stroke: var(--fh-ink); stroke-width: 1.6; stroke-linecap: round; }
+.fishing-hud .fh-float ellipse { fill: var(--fh-ink); }
+.fishing-hud .fh-float .fh-band { stroke: var(--fh-paper); stroke-width: 1.2; }
+.fishing-hud .fh-splash { opacity: 0; }
+.fishing-hud .fh-splash path { stroke: var(--fh-ink); stroke-width: 1.3; stroke-linecap: round; fill: none; }
+.fishing-hud .fh-bang { opacity: 0; transform: scale(0); }
+.fishing-hud .fh-bang circle { fill: #d6402b; }
+.fishing-hud .fh-bang text { fill: #fff; font: 700 14px sans-serif; }
+.fishing-hud .fh-winbar { fill: #d6402b; opacity: 0; transform-origin: 0% 50%; }
+
+/* sky: sun or moon, stars at night, a cloud, rain; the panel darkens at night (data-sky / data-weather) */
+.fishing-hud[data-sky='night'] .fh-scene { --fh-ink: #e9e4d6; --fh-paper: #1b2236; --fh-panel: rgba(27, 34, 54, 0.94); }
+.fishing-hud[data-sky='dusk'] .fh-scene { --fh-panel: rgba(247, 228, 206, 0.94); }
+.fishing-hud[data-sky='dawn'] .fh-scene { --fh-panel: rgba(233, 240, 232, 0.94); }
+.fishing-hud .fh-orb { fill: none; stroke: var(--fh-ink); stroke-width: 1.4; opacity: 0.5; }
+.fishing-hud[data-sky='night'] .fh-orb { fill: var(--fh-ink); stroke: none; opacity: 0.8; }
+.fishing-hud[data-weather='cloudy'] .fh-orb, .fishing-hud[data-weather='rain'] .fh-orb { opacity: 0.18; }
+.fishing-hud .fh-stars { opacity: 0; }
+.fishing-hud .fh-stars circle { fill: var(--fh-ink); }
+.fishing-hud[data-sky='night'][data-weather='sunny'] .fh-stars { opacity: 0.85; }
+.fishing-hud[data-sky='night'] .fh-stars circle { animation: fh-twinkle 3.6s ease-in-out infinite; }
+.fishing-hud .fh-stars circle:nth-child(2) { animation-delay: 1.2s; }
+.fishing-hud .fh-stars circle:nth-child(3) { animation-delay: 2.4s; }
+.fishing-hud .fh-cloud { fill: var(--fh-panel); stroke: var(--fh-ink); stroke-width: 1; opacity: 0; }
+.fishing-hud[data-weather='cloudy'] .fh-cloud, .fishing-hud[data-weather='rain'] .fh-cloud { opacity: 0.75; animation: fh-drift 18s ease-in-out infinite alternate; }
+.fishing-hud .fh-rain { stroke: var(--fh-ink); stroke-width: 0.9; stroke-linecap: round; fill: none; opacity: 0; }
+.fishing-hud[data-weather='rain'] .fh-rain { animation: fh-rain 0.9s linear infinite; }
+/* under the water: a shadow passes now and then, a bubble rises; the shadow darts at the float on a bite */
+.fishing-hud .fh-shadow { fill: var(--fh-ink); opacity: 0; }
+.fishing-hud .fh-bubbles circle { fill: none; stroke: var(--fh-ink); stroke-width: 0.6; opacity: 0; }
+.fishing-hud[data-state='idle'] .fh-shadow, .fishing-hud[data-state='wait'] .fh-shadow { animation: fh-swim 19s linear infinite; }
+.fishing-hud[data-state='idle'] .fh-bubbles circle { animation: fh-bubble 7s ease-out infinite; }
+.fishing-hud .fh-bubbles circle:nth-child(2) { animation-delay: 3.2s; }
+.fishing-hud[data-state='bite'] .fh-shadow { animation: fh-dart 0.35s ease-out forwards; }
+/* reeled in: the rod without a line */
+.fishing-hud[data-state='off'] .fh-scene { opacity: 0.5; }
+.fishing-hud[data-state='off'] .fh-float, .fishing-hud[data-state='off'] .fh-line { opacity: 0; }
+/* a ring bursts around the card of a rare (once) or legendary (twice) catch */
+.fishing-hud::after { content: ''; position: absolute; inset: -3px; border-radius: 10px; border: 2px solid var(--fh-rare); opacity: 0; pointer-events: none; }
+.fishing-hud[data-rarity='legendary']::after { border-color: var(--fh-legend); }
+.fishing-hud[data-state='result'][data-rarity='rare']::after { animation: fh-ring 1.3s ease-out 1; }
+.fishing-hud[data-state='result'][data-rarity='legendary']::after { animation: fh-ring 1.3s ease-out 2; }
+
+/* idle / wait: the float bobs, sparse ripples */
+.fishing-hud[data-state='idle'] .fh-float, .fishing-hud[data-state='wait'] .fh-float { animation: fh-bob 3s ease-in-out infinite; }
+.fishing-hud[data-state='idle'] .fh-ripple { animation: fh-ripple 3.2s ease-out infinite; }
+.fishing-hud[data-state='idle'] .fh-r2 { animation-delay: 1.6s; }
+.fishing-hud[data-state='wait'] .fh-ripple { animation: fh-ripple 2.2s ease-out infinite; }
+.fishing-hud[data-state='wait'] .fh-r2 { animation-delay: 1.1s; }
+/* cast */
+.fishing-hud[data-state='cast'] .fh-float { animation: fh-drop 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+.fishing-hud[data-state='cast'] .fh-line { animation: fh-draw 0.6s ease-out forwards; }
+.fishing-hud[data-state='cast'] .fh-r1 { animation: fh-ripple 1s 0.5s ease-out 1 forwards; }
+.fishing-hud[data-state='cast'] .fh-splash { animation: fh-splash 0.5s 0.45s ease-out 1; }
+/* bite: the float goes under and shakes, "!" pops, the bar runs out, the frame pulses */
+.fishing-hud[data-state='bite'] .fh-float { animation: fh-sink 0.5s ease-out forwards, fh-tug 0.28s 0.5s ease-in-out infinite; }
+.fishing-hud[data-state='bite'] .fh-line { animation: fh-linebite 0.5s ease-out forwards; }
+.fishing-hud[data-state='bite'] .fh-bang { animation: fh-pop 0.25s 0.1s cubic-bezier(0.3, 1.6, 0.5, 1) forwards, fh-beat 0.5s 0.4s ease-in-out infinite; }
+.fishing-hud[data-state='bite'] .fh-winbar { opacity: 1; animation: fh-shrink var(--fh-win, 3s) linear forwards; }
+.fishing-hud[data-state='bite'] .fh-ripple { animation: fh-ripple 0.9s ease-out infinite; }
+.fishing-hud[data-state='bite'] .fh-r2 { animation-delay: 0.45s; }
+.fishing-hud[data-state='bite'] .fh-panel { stroke: #d6402b; stroke-width: 2.2; }
+.fishing-hud[data-state='bite'] { animation: fh-nudge 0.6s ease-in-out infinite; }
+/* reel */
+.fishing-hud[data-state='reel'] .fh-float { animation: fh-reel 0.8s ease-in forwards; }
+.fishing-hud[data-state='reel'] .fh-line { animation: fh-linereel 0.8s ease-in forwards; }
+.fishing-hud[data-state='reel'] .fh-r1 { animation: fh-ripple 0.8s ease-out forwards; }
+.fishing-hud[data-state='reel'] .fh-splash { animation: fh-splash 0.6s ease-out 1; }
+/* got away / nothing */
+.fishing-hud[data-state='escape'] .fh-float { animation: fh-escape 0.6s ease-out forwards; }
+.fishing-hud[data-state='escape'] .fh-line { animation: fh-slack 0.6s forwards; }
+.fishing-hud[data-state='escape'] .fh-splash { animation: fh-splash 0.5s ease-out 1; }
+.fishing-hud[data-state='empty'] .fh-float { animation: fh-lift 0.7s ease-in-out forwards; }
+.fishing-hud[data-state='empty'].minimal .fh-float { animation: none; }
+.fishing-hud[data-state='empty'].minimal .fh-r1 { animation: fh-ripple 0.5s ease-out 1; }
+
+/* result card */
+.fishing-hud .fh-card {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: 0.45em; padding: 0.45em 0.73em; box-sizing: border-box;
+  opacity: 0; transform: translateY(6px) scale(0.96); border-radius: 7px; overflow: hidden;
+  background: var(--fh-paper); border: 1.5px solid var(--fh-ink);
+}
+.fishing-hud[data-state='result'] .fh-card { animation: fh-cardin 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.25) forwards; }
+.fishing-hud .fh-pic { width: 50%; flex: none; }
+.fishing-hud .fh-pic svg { width: 100%; height: auto; display: block; }
+.fishing-hud[data-state='result'] .fh-pic { animation: fh-flop 0.5s 0.15s ease-out 1 both; }
+.fishing-hud .fh-card[data-kind='junk'] .fh-pic { width: 34%; }
+.fishing-hud .fh-txt { min-width: 0; flex: 1; }
+.fishing-hud .fh-name { font-size: 1.18em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fishing-hud .fh-tags { opacity: 0.72; font-size: 0.91em; }
+.fishing-hud .fh-letter { font-size: 0.91em; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+/* rarity dress: border colour; rare and legendary add a light sweep and a few sparks */
+.fishing-hud[data-rarity='uncommon'] .fh-card { border-color: var(--fh-uncommon); }
+.fishing-hud[data-rarity='rare'] .fh-card { border-color: var(--fh-rare); border-width: 2px; }
+.fishing-hud[data-rarity='legendary'] .fh-card { border-color: var(--fh-legend); border-width: 2px; background: linear-gradient(135deg, #fff8dc, var(--fh-paper) 55%); }
+.fishing-hud .fh-card::after {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: 0; width: 34%; opacity: 0;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent); transform: translateX(-120%) skewX(-14deg);
+}
+.fishing-hud[data-state='result'][data-rarity='rare'] .fh-card::after,
+.fishing-hud[data-state='result'][data-rarity='legendary'] .fh-card::after { animation: fh-sweep 1.1s 0.35s ease-out 1; }
+.fishing-hud[data-state='result'][data-rarity='legendary'] .fh-card::after { animation-iteration-count: 2; }
+.fishing-hud .fh-sparks { overflow: visible; pointer-events: none; }
+.fishing-hud .fh-sparks path { opacity: 0; transform-box: fill-box; transform-origin: center; fill: var(--fh-rare); }
+.fishing-hud[data-rarity='legendary'] .fh-sparks path { fill: var(--fh-legend); }
+.fishing-hud[data-state='result'][data-rarity='rare'] .fh-sparks path,
+.fishing-hud[data-state='result'][data-rarity='legendary'] .fh-sparks path { animation: fh-spark 1.2s ease-out 2; }
+.fishing-hud .fh-sparks path:nth-child(2) { animation-delay: 0.15s !important; }
+.fishing-hud .fh-sparks path:nth-child(3) { animation-delay: 0.3s !important; }
+.fishing-hud .fh-sparks path:nth-child(4) { animation-delay: 0.45s !important; }
+.fishing-hud .fh-sparks path:nth-child(5) { animation-delay: 0.6s !important; }
+.fishing-hud .fh-sparks path:nth-child(6) { animation-delay: 0.75s !important; }
+
+@keyframes fh-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes fh-drift { from { transform: translateX(-10px); } to { transform: translateX(34px); } }
+@keyframes fh-rain { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 0.55; } 100% { opacity: 0; transform: translateY(26px); } }
+@keyframes fh-swim { 0% { opacity: 0; transform: translateX(-42px); } 8% { opacity: 0.2; } 42% { opacity: 0.2; transform: translateX(52px); } 50%, 100% { opacity: 0; transform: translateX(64px); } }
+@keyframes fh-bubble { 0% { opacity: 0; transform: translateY(0); } 8% { opacity: 0.6; } 30%, 100% { opacity: 0; transform: translateY(-9px); } }
+@keyframes fh-dart { from { opacity: 0; transform: translate(-10px, 0); } to { opacity: 0.35; transform: translate(30px, -7px); } }
+@keyframes fh-ring { 0% { opacity: 0.9; transform: scale(0.96); } 100% { opacity: 0; transform: scale(1.22); } }
+@keyframes fh-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+@keyframes fh-ripple { 0% { opacity: 0.8; transform: scale(0.4); } 100% { opacity: 0; transform: scale(4); } }
+@keyframes fh-drop { 0% { transform: translate(-40px, -30px); opacity: 0; } 30% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes fh-draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes fh-splash { 0% { opacity: 0; transform: translateY(3px) scale(0.5); } 35% { opacity: 1; } 100% { opacity: 0; transform: translateY(-5px) scale(1.25); } }
+@keyframes fh-sink { 0% { transform: none; } 30% { transform: translateY(7px); } 50% { transform: translateY(3px); } 70% { transform: translateY(8px); } 100% { transform: translateY(7px); } }
+@keyframes fh-tug { 0%, 100% { transform: translate(0, 7px); } 50% { transform: translate(1.5px, 9px); } }
+@keyframes fh-linebite { to { d: path('M16,8 Q60,14 92,47'); } }
+@keyframes fh-pop { to { opacity: 1; transform: scale(1); } }
+@keyframes fh-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes fh-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes fh-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes fh-reel { 0% { transform: translateY(7px); } 60% { transform: translate(-20px, -18px); } 100% { transform: translate(-44px, -40px); opacity: 0; } }
+@keyframes fh-linereel { 0% { d: path('M16,8 Q60,14 92,47'); } 100% { d: path('M16,8 Q30,10 48,10'); } }
+@keyframes fh-escape { 0% { transform: translateY(7px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(-3px) rotate(18deg); } }
+@keyframes fh-slack { to { d: path('M16,8 Q50,30 92,42'); } }
+@keyframes fh-lift { 0% { transform: none; } 40% { transform: translate(-6px, -10px); } 100% { transform: translate(-10px, -14px); opacity: 0; } }
+@keyframes fh-cardin { to { opacity: 1; transform: none; } }
+@keyframes fh-flop { 0% { transform: translateY(8px) rotate(-10deg); } 55% { transform: translateY(-2px) rotate(5deg); } 100% { transform: none; } }
+@keyframes fh-sweep { 0% { opacity: 0; transform: translateX(-120%) skewX(-14deg); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateX(420%) skewX(-14deg); } }
+@keyframes fh-spark { 0% { opacity: 0; transform: scale(0.2) rotate(0deg); } 35% { opacity: 1; transform: scale(1.5) rotate(40deg); } 100% { opacity: 0; transform: scale(0.4) rotate(90deg); } }
+
+/* Light tier / reduced motion: states only swap still pictures. Hidden window: everything stops. */
+.fishing-hud.lite, .fishing-hud.lite *, .fishing-hud.lite .fh-card::after, .fishing-hud.lite::after { animation: none !important; }
+.fishing-hud.lite[data-weather='rain'] .fh-rain { opacity: 0.4; }
+.fishing-hud.lite[data-state='result'] .fh-card { opacity: 1; transform: none; }
+.fishing-hud.lite[data-state='bite'] .fh-bang { opacity: 1; transform: none; }
+.fishing-hud.lite[data-state='bite'] .fh-float { transform: translateY(7px); }
+.fishing-hud.lite[data-state='reel'] .fh-float, .fishing-hud.lite[data-state='empty'] .fh-float { opacity: 0; }
+.fishing-hud.paused, .fishing-hud.paused *, .fishing-hud.paused::after { animation-play-state: paused !important; }

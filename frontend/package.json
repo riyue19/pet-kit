@@ -1,0 +1,33 @@
+{
+  "name": "pet-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && vue-tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "fetch-core": "node scripts/fetch-cubism-core.mjs",
+    "fetch-sample-model": "node scripts/fetch-sample-model.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "electron": "^45.2.3",
+    "electron-vite": "^6.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12",
+    "vue-tsc": "^3.3.14"
+  },
+  "dependencies": {
+    "@pixi/unsafe-eval": "^6.5.10",
+    "naive-ui": "^2.45.3",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.10",
+    "vue": "^3.5.45",
+    "yaml": "^2.9.1"
+  }
+}

@@ -1,0 +1,47 @@
+node_modules/
+dist/
+out/
+*.log
+.env
+.env.*
+__pycache__/
+*.pyc
+.venv/
+
+.claude/settings.local.json
+
+# Live2D: Cubism Core is proprietary; models are user-provided
+frontend/public/live2d/
+
+# Local ASR models (scripts/fetch_models.py)
+backend/models/
+
+# Local data: chat history / memory DB (memory.db_path)
+data/
+*.db
+
+# User-provided Live2D model source files
+live2D model/
+
+# 下载的 Live2D 原始压缩包/模型（已导入的副本在 frontend/public/live2d/，同样不进 git）
+塞壬【皮套】/
+KKK207/
+
+# 个人配置：人设、状态、提示词、表情包、API 地址、城市、本机程序路径、所选模型、自定义 CSS。
+# 干净的示例在 config/examples/；这些文件缺失时程序用内置默认值。
+config/backend.yaml
+config/persona.yaml
+config/status.yaml
+config/prompt.yaml
+config/stickers.yaml
+config/skills.yaml
+config/console.yaml
+config/frontend.yaml
+config/models/
+
+# 钓鱼功能的设计资料包（规范、素材、演示页），只留本地；运行不需要它
+fishing/
+
+# Claude Code project files (local only)
+CLAUDE.md
+.claude/

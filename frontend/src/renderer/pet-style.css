@@ -1,0 +1,194 @@
+/*
+ * Visual style of the chat bubble and the input box, as presets.
+ * A preset is selected by data-bubble-style / data-input-style on any ancestor (the pet window sets them on <html>,
+ * the console preview on its wrapper). Layout (position, size) stays in index.html; only looks live here.
+ * User CSS (config/console.yaml: pet_css) is injected after this file, so it can override any rule below,
+ * Use the ids (#bubble, #chat-input) so the rule outranks the presets,
+ * e.g.  #bubble { --b-bg: #fff3c4; --b-fg: #333; }   or   #chat-input { font-size: 15px; }
+ */
+
+/* ---------- Bubble ---------- */
+.pet-bubble {
+  --b-bg: rgba(255, 255, 255, 0.94);
+  --b-fg: #2a2a33;
+  --b-border: 0 solid transparent;
+  --b-radius: 12px;
+  --b-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  --b-blur: none;
+  background: var(--b-bg);
+  color: var(--b-fg);
+  border: var(--b-border);
+  border-radius: var(--b-radius);
+  box-shadow: var(--b-shadow);
+  backdrop-filter: var(--b-blur);
+}
+/* Tail at the bottom-right corner, pointing down-right toward the head. */
+.pet-bubble::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: -8px;
+  border: 8px solid transparent;
+  border-bottom: 0;
+  border-right: 0;
+  border-top-color: var(--b-bg);
+}
+[data-bubble-style='dark'] .pet-bubble {
+  --b-bg: rgba(32, 32, 44, 0.92);
+  --b-fg: #f2f2f7;
+  --b-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+[data-bubble-style='pink'] .pet-bubble {
+  --b-bg: #ffe6f0;
+  --b-fg: #7a2a50;
+  --b-border: 2px solid #ff9ec4;
+  --b-radius: 18px;
+  --b-shadow: 0 3px 10px rgba(255, 120, 170, 0.35);
+}
+[data-bubble-style='glass'] .pet-bubble {
+  --b-bg: rgba(255, 255, 255, 0.3);
+  --b-fg: #14141a;
+  --b-border: 1px solid rgba(255, 255, 255, 0.6);
+  --b-radius: 16px;
+  --b-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  --b-blur: blur(10px) saturate(1.4);
+}
+[data-bubble-style='pixel'] .pet-bubble {
+  --b-bg: #ffffff;
+  --b-fg: #1a1a1a;
+  --b-border: 3px solid #1a1a1a;
+  --b-radius: 0;
+  --b-shadow: 3px 3px 0 #1a1a1a;
+}
+
+/* ---------- Input box ---------- */
+.pet-input {
+  --i-bg: rgba(30, 30, 40, 0.55);
+  --i-bg-active: rgba(30, 30, 40, 0.8);
+  --i-fg: #ffffff;
+  --i-ph: rgba(255, 255, 255, 0.6);
+  --i-border: 1px solid rgba(255, 255, 255, 0.18);
+  --i-radius: 17px;
+  --i-blur: none;
+  color: var(--i-fg);
+  background: var(--i-bg);
+  border: var(--i-border);
+  border-radius: var(--i-radius);
+  backdrop-filter: var(--i-blur);
+}
+.pet-input::placeholder {
+  color: var(--i-ph);
+}
+.pet-input:hover,
+.pet-input:focus {
+  background: var(--i-bg-active);
+}
+[data-input-style='light'] .pet-input {
+  --i-bg: rgba(255, 255, 255, 0.8);
+  --i-bg-active: rgba(255, 255, 255, 0.98);
+  --i-fg: #2a2a33;
+  --i-ph: rgba(42, 42, 51, 0.5);
+  --i-border: 1px solid rgba(0, 0, 0, 0.12);
+}
+[data-input-style='glass'] .pet-input {
+  --i-bg: rgba(255, 255, 255, 0.18);
+  --i-bg-active: rgba(255, 255, 255, 0.32);
+  --i-fg: #ffffff;
+  --i-ph: rgba(255, 255, 255, 0.75);
+  --i-border: 1px solid rgba(255, 255, 255, 0.45);
+  --i-blur: blur(10px) saturate(1.4);
+}
+[data-input-style='outline'] .pet-input {
+  --i-bg: transparent;
+  --i-bg-active: rgba(0, 0, 0, 0.25);
+  --i-fg: #ffffff;
+  --i-ph: rgba(255, 255, 255, 0.7);
+  --i-border: 2px solid #8c6cff;
+}
+[data-input-style='pixel'] .pet-input {
+  --i-bg: #ffffff;
+  --i-bg-active: #ffffff;
+  --i-fg: #1a1a1a;
+  --i-ph: rgba(26, 26, 26, 0.5);
+  --i-border: 3px solid #1a1a1a;
+  --i-radius: 0;
+}
+
+/* ---------- Status value pop (好感度 +0.3 …) ----------
+ * One .status-pop per changed value, floating up at the right of the head (container: #status-fx).
+ * Classes: .up / .down (direction), .tier (the value entered a new tier); data-stat="<id>" (e.g. affection).
+ * Parts: .sp-head (.sp-icon .sp-name .sp-delta), .sp-bar > i (progress), .sp-reason, .sp-tier.
+ * Variables: --s-color (the stat's colour, set per pop), --s-bg, --s-fg, --s-radius, --s-shadow, --s-down.
+ * Custom CSS: use #status-fx .status-pop { … } to outrank these rules.
+ */
+.status-pop {
+  --s-color: #ff7eb6;
+  --s-bg: rgba(255, 255, 255, 0.95);
+  --s-fg: #3a3340;
+  --s-radius: 12px;
+  --s-shadow: 0 4px 14px color-mix(in srgb, var(--s-color) 35%, transparent), 0 1px 3px rgba(0, 0, 0, 0.12);
+  --s-down: #7d8597;
+  min-width: 96px;
+  max-width: 170px;
+  padding: 6px 10px 7px;
+  box-sizing: border-box;
+  font: 12px/1.4 'Microsoft YaHei UI', sans-serif;
+  color: var(--s-fg);
+  background: var(--s-bg);
+  border: 1.5px solid color-mix(in srgb, var(--s-color) 55%, white);
+  border-radius: var(--s-radius);
+  box-shadow: var(--s-shadow);
+}
+.status-pop.down {
+  --s-color: var(--s-down) !important;
+}
+.status-pop .sp-head {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+.status-pop .sp-icon {
+  font-size: 9px;
+  color: var(--s-color);
+}
+.status-pop .sp-name {
+  font-weight: 600;
+}
+.status-pop .sp-delta {
+  margin-left: auto;
+  padding-left: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--s-color);
+  font-variant-numeric: tabular-nums;
+}
+.status-pop .sp-bar {
+  height: 5px;
+  margin-top: 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--s-color) 18%, transparent);
+  overflow: hidden;
+}
+.status-pop .sp-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--s-color) 60%, white), var(--s-color));
+}
+.status-pop .sp-reason {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+  word-break: break-all;
+}
+.status-pop .sp-tier {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--s-color);
+}
+.status-pop.tier {
+  border-width: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-color) 22%, transparent), var(--s-shadow);
+}

@@ -1,0 +1,222 @@
+# 后端（Core）配置示例。复制为 config/backend.yaml 后使用（那个文件含个人内容，不进 git）。
+# llm 部分通常在控制台「AI 模型」「识图」页修改，保存时会整体改写 llm 段（该段内的注释不保留）。
+#
+# server.port：后端只监听 127.0.0.1，端口范围 [1024, 65535]。
+#
+# llm.profiles：可以有多套配置，每套字段：
+#   name               名称（唯一，1~32 个字符，字母/数字/汉字/空格/-_.）
+#   base_url           OpenAI 兼容接口地址，如 https://api.openai.com/v1、https://api.deepseek.com/v1、
+#                      https://dashscope.aliyuncs.com/compatible-mode/v1、http://127.0.0.1:11434/v1（Ollama）
+#   model              模型名
+#   max_tokens         最大输出 token，null 表示不发送（用服务端默认）
+#   temperature        [0, 2]，null 表示不发送
+#   top_p              [0, 1]，null 表示不发送
+#   presence_penalty   [-2, 2]，null 表示不发送
+#   frequency_penalty  [-2, 2]，null 表示不发送
+#   timeout            请求超时秒数 (0, 600]
+#   stream             true 用流式请求并把各块拼成整句（有些中转站只支持流式，或非流式容易超时）；默认 false。桌宠收到的内容不变
+#   extra              自定义 JSON 参数，原样并入请求体（不能含 model/messages/stream/tools/tool_choice/functions/n）
+#   web_search         模型自带的联网搜索怎么开启（取决于中转站）：off 关闭 / google_function（new-api 类中转站把 googleSearch 函数映射到 Gemini 的 Google 搜索）/ openai_options（web_search_options）
+#                      开启后每次聊天都附带搜索工具，模型自己决定要不要搜；问题明显需要最新信息时会额外提示它先搜。看屏幕从不搜索。
+#   API Key 不写在这里：在控制台输入后存进 Windows 凭据管理器（服务名 pet-kit/llm，用户名为配置名称）。
+#
+# llm.roles：按用途指定使用哪套配置（填配置名称，null 表示未指定）。
+#   chat    文字聊天
+#   vision  识图（需要支持图像输入的模型）
+#   memory  总结记忆（null 表示沿用 chat；可以指定一个便宜的模型省钱）
+#
+# memory：聊天记录与长期记忆（控制台「记忆」页修改）。数据存在 %LOCALAPPDATA%/pet-kit/memory.db，不进 git。
+#   enabled                保存聊天记录、检索记忆；false 时只记得本次运行的最近几轮
+#   summarize_every_turns  每累计多少轮新对话（一问一答算一轮），调用一次 LLM 总结成长期记忆 [5, 200]
+#   recall_memories        每次回复带上几条最相关的记忆 [0, 20]（置顶的记忆总会带上，不占名额）
+#   recall_messages        每次回复带上几条相关的旧对话 [0, 10]
+#   min_similarity         相似度达到多少才算相关 [0.1, 0.95]
+#   model_dir              向量模型目录（相对 backend/），用 `uv run python scripts/fetch_models.py` 下载
+#   db_path                数据库保存位置：绝对路径的文件夹或 .db 文件，留空 = %LOCALAPPDATA%/pet-kit/memory.db；在控制台修改会把现有数据移过去
+#
+# screen：屏幕感知与看屏幕吐槽（控制台「感知与主动」页修改）。隐私黑名单 / 免打扰名单在 config/privacy.yaml。
+#   enabled                  总开关；关闭时连前台窗口标题都不读
+#   mode                     quiet 安静 / normal 适中 / chatty 话痨（停留多久才看、同一内容多久再看、每小时上限）
+#   allow_fullscreen         全屏（游戏、视频）时也允许吐槽；会议、录屏、直播永远免打扰
+#   quiet_after_user_seconds 主人刚说过话 / 打过字 / 点过桌宠后，这么多秒内不主动插话
+#   poll_seconds             读取前台窗口的间隔
+#
+# proactive：主动对话（控制台「感知与主动」页修改）。只用聊天模型（llm.roles.chat），不截图、不联网搜索；
+#   和看屏幕吐槽共用闸门：两次主动发言的最小间隔、每小时上限、主人刚互动过（screen.quiet_after_user_seconds）、
+#   免打扰名单（config/privacy.yaml，检查所有可见窗口）、正在说话/思考、主人正在开口；前台全屏时也不说（不受 screen.allow_fullscreen 影响）。只有最近 2 分钟内动过键盘鼠标（系统空闲时间，只读时间戳）才算在电脑前。
+#   enabled              总开关（挂机钓鱼时桌宠自己说的台词也跟随它）
+#   mode                 quiet 安静 / normal 适中 / chatty 话痨（最小间隔、每小时上限、两次空闲搭话的间隔，见 core/screen_config.py 的 CHAT_CADENCES）
+#   idle_chat            空闲搭话：在电脑前，但这么多分钟没和桌宠说话 idle_after_minutes [3, 240]
+#   welcome_back         离开电脑超过 away_minutes [3, 240] 分钟后回来，打个招呼
+#   idle_action          空闲动作：超过 idle_action_minutes [1, 240] 分钟没和桌宠互动（打字 / 说话 / 点它 / 快捷键；不看键盘鼠标有没有动）时，
+#                        从 idle_action_motions / idle_action_expressions（标签，各最多 16 个）里各随机挑一个来做，之后每隔同样时间再做一次。
+#                        不调用模型、不说话、不受 enabled 影响；当前模型没有的标签自动跳过
+#   greetings            时间段问候：早上第一次在电脑前（5~10 点）、午饭（11~13 点）、晚饭（17~19 点）、深夜（23~2 点），每种每天一次
+#
+# camera：摄像头（M9，可选，默认关闭；控制台「感知与主动」页修改）。画面只在本机内存里用来判断人在不在（YuNet 人脸检测，不联网），
+#   从不保存，也不进事件和日志。只有「离开一阵后回来」且通过主动对话闸门（和 proactive 共用最小间隔 / 每小时上限 / 免打扰）时，
+#   才抽一帧发给 llm.roles.vision 打招呼。开启期间摄像头一直处于打开状态（指示灯会亮），桌宠左上角显示红色「摄像头开启中」；
+#   会议 / 录屏 / 直播软件（config/privacy.yaml 的 quiet_*）在运行时会让出摄像头；托盘「关闭全部感知」也会关掉它。
+#   enabled                 总开关
+#   device_index            摄像头设备号 [0, 9]；`uv run python scripts/camera_check.py [设备号]` 可自测
+#   check_seconds           检测间隔 [1, 30]
+#   away_after_seconds      多久没检测到人脸算「离开」[5, 600]
+#   greet_on_return         回来时打招呼（需要指定识图 LLM，并且主动对话总开关 proactive.enabled 也要开着；主动要求「看看我」不受这个限制）
+#   greet_min_away_minutes  离开至少这么多分钟才打招呼 [1, 240]
+#   model_dir               人脸检测模型目录（相对 backend/），用 `uv run python scripts/fetch_models.py` 下载
+#
+# environment：每次回复附带的环境信息
+#   city                     天气城市，如「杭州」「北京 朝阳」；留空则不查天气（用 Open-Meteo，免费、无 Key、不按 IP 定位）
+#   weather                  是否附带天气（每 30 分钟更新一次）
+#
+# asr：本地语音识别（SenseVoice-Small + Silero VAD，sherpa-onnx，纯 CPU，不联网）。控制台「语音」页修改。
+#   listen               麦克风常开；false 时桌宠不会打开麦克风
+#   language             识别语言 zh/auto/en/ja/ko/yue（默认 zh；auto 偶尔会把气声识别成日语、韩语音节）
+#   min_chars            去掉标点后少于这么多字的识别结果直接丢弃 [1, 10]；只有「嗯/啊/哦」这类语气词的也丢弃
+#   short_min_seconds    短句的录音短于这么多秒也丢弃 [0, 2]（「这个我。」这类不到 1 秒的杂音碎片）；0 = 不检查
+#   model_dir            模型目录（相对 backend/），用 `uv run python scripts/fetch_models.py` 下载
+#   threads              识别线程数 1~16
+#   vad_threshold        语音判定阈值 [0.1, 0.95]，越高越不容易被噪音触发
+#   min_silence_seconds  停顿多久算一句话说完 [0.2, 3]
+#   barge_in             说话时打断桌宠；false 时它会把当前这句说完，之后的回复排队依次朗读
+#   barge_in_seconds     开启打断时，要连续说多久才打断它 [0, 3]（防回声/杂音误打断）
+#
+# tts：语音合成。provider 三选一，各自的设置分开保存；API Key 存 Windows 凭据管理器（服务名 pet-kit/tts，用户名 = provider 名）。
+#   provider             minimax / cosyvoice（阿里云百炼 CosyVoice，华北2）/ openai（任何 OpenAI 兼容 /audio/speech 的服务）
+#   cosyvoice.url        wss://dashscope.aliyuncs.com/api-ws/v1/inference（华北2 北京）
+#   cosyvoice.model      cosyvoice-v3-flash / cosyvoice-v3-plus / cosyvoice-v3.5-flash / cosyvoice-v3.5-plus / cosyvoice-v2，也可填其他
+#   cosyvoice.voice      音色名（必须属于所选模型，见百炼「CosyVoice 音色列表」）或复刻音色 ID
+#   cosyvoice.volume     音量 [0, 100]；rate 语速 [0.5, 2]；pitch 音调 [0.5, 2]；timeout 秒
+#   cosyvoice.emotion_instruct  把表情对应的语气作为指令发给模型（只有 longanhuan / longanyang / longhuhu_v3 等支持；不支持时自动改回默认语气）
+#   cosyvoice.instruction       说话风格（方言/角色），须按百炼文档格式写，如「请用四川话表达。」；留空不用
+#   openai.base_url      填到 /v1，程序请求 base_url/audio/speech；必须 https（本机服务可用 http://127.0.0.1:端口，可不填 Key）
+#   openai.model / voice / speed [0.25, 4]
+#   openai.response_format  pcm 或 wav（16 位单声道；不支持 mp3）
+#   openai.sample_rate   服务实际返回的采样率（OpenAI 的 pcm 是 24000），填错会变调
+#   openai.extra         随请求发送的额外字段，如 {sample_rate: 24000}
+#   enabled              是否朗读回复（括号里的动作描写不读）
+#   speech_language      朗读语言：same 读气泡文字；ja / en 让 LLM 额外写一句日语 / 英语用来朗读，气泡仍是中文（请配同语言音色）
+#   minimax.base_url     https://api.minimax.cn（备用 https://api-bj.minimaxi.com）
+#   minimax.model        speech-2.8-turbo / speech-2.8-hd / speech-2.6-turbo / speech-2.6-hd / speech-02-turbo / speech-02-hd
+#   minimax.voice_id     音色 ID，控制台可从账号可用音色里选，也可填复刻音色
+#   minimax.speed        语速 [0.5, 2]；vol 音量 (0, 10]；pitch 音调 [-12, 12]；timeout 秒
+#   emotions             表情标签 → 语气（happy/sad/angry/fearful/disgusted/surprised/calm/fluent/whisper）；
+#                        标签名本身就是语气名时自动对应，不用写；注意 speech-2.8 系列不支持 whisper（已实测），不支持的语气会自动改用默认语气
+server:
+  port: 8765
+
+# network：后端访问外网（LLM / MiniMax / 天气）所用的代理，改后需重启后端
+#   proxy    direct（默认，直连，不受系统代理 / VPN 软件开关影响）
+#            system（跟随 Windows 系统代理和 HTTP(S)_PROXY 环境变量）
+#            或具体地址，如 http://127.0.0.1:7897
+network:
+  proxy: direct
+
+llm:
+  profiles:
+    - name: 示例
+      base_url: https://api.openai.com/v1
+      model: gpt-4o-mini
+      max_tokens:
+      temperature: 0.8
+      top_p:
+      presence_penalty:
+      frequency_penalty:
+      timeout: 60.0
+      stream: false
+      extra: {}
+      web_search: off
+  roles:
+    chat:
+    vision:
+    memory:
+  fallbacks:
+    chat: []
+    vision: []
+    memory: []
+  web_search: true
+asr:
+  listen: false
+  language: zh
+  min_chars: 2
+  short_min_seconds: 1.0
+  model_dir: models/asr
+  threads: 2
+  vad_threshold: 0.5
+  min_silence_seconds: 0.8
+  min_speech_seconds: 0.25
+  max_speech_seconds: 20.0
+  short_chars: 4
+  drop_fillers: true
+  ignore_phrases: []
+  barge_in: true
+  barge_in_seconds: 0.4
+tts:
+  enabled: true
+  provider: minimax
+  minimax:
+    base_url: https://api.minimax.cn
+    model: speech-2.8-turbo
+    voice_id:
+    speed: 1.0
+    vol: 1.0
+    pitch: 0
+    timeout: 30.0
+  cosyvoice:
+    url: wss://dashscope.aliyuncs.com/api-ws/v1/inference
+    model: cosyvoice-v3-flash
+    voice: longanhuan
+    volume: 50
+    rate: 1.0
+    pitch: 1.0
+    emotion_instruct: false
+    instruction: ''
+    timeout: 30.0
+  openai:
+    base_url: https://api.openai.com/v1
+    model: gpt-4o-mini-tts
+    voice: alloy
+    speed: 1.0
+    response_format: pcm
+    sample_rate: 24000
+    extra: {}
+    timeout: 30.0
+  speech_language: same
+  emotions: {}
+memory:
+  enabled: true
+  summarize_every_turns: 20
+  recall_memories: 5
+  recall_messages: 3
+  min_similarity: 0.45
+  model_dir: models/embed
+  db_path: ''
+screen:
+  enabled: false
+  mode: normal
+  allow_fullscreen: true
+  quiet_after_user_seconds: 45.0
+  poll_seconds: 2.0
+environment:
+  city: ''
+  weather: true
+proactive:
+  enabled: false
+  mode: normal
+  idle_chat: true
+  idle_after_minutes: 20.0
+  welcome_back: true
+  away_minutes: 10.0
+  greetings: true
+  idle_action: false
+  idle_action_minutes: 20.0
+  idle_action_motions: []
+  idle_action_expressions: []
+camera:
+  enabled: false
+  device_index: 0
+  check_seconds: 3.0
+  away_after_seconds: 30.0
+  greet_on_return: true
+  greet_min_away_minutes: 5.0
+  model_dir: models/camera

@@ -1,0 +1,30 @@
+# 提示词设置示例。复制为 config/prompt.yaml 后使用（那个文件含个人内容，不进 git）；也可以直接在控制台「提示词」页编辑。
+# 保存后下一句对话生效，无需重启。
+# 不要在这里写任何密码、密钥（这些内容会原样发给模型）。
+#
+# order                提示词各段的发送顺序（段落名见控制台「提示词」页，可在页面上按住拖动）；空 = 内置顺序，没列出的段落留在原来的相对位置
+# format_rules         额外格式要求：单独作为一段发出去（默认排在输出格式后面，最多 2000 字）；留空就没有这一段
+# knowledge            知识库条目（最多 50 条；「总是带上」的内容合计最多 4000 字，超出的不发送）
+#   - title            标题
+#     content          内容
+#     enabled          是否启用
+#     mode             always 每句话都带上 | keyword 只有你这句话里出现关键词才带上
+#     keywords         mode 为 keyword 时的关键词列表
+# expression_notes     表情标签 -> 什么时候用（标签名见「形象」页的表情与动作）
+# motion_notes         动作标签 -> 什么时候用
+# search_keywords      额外的联网搜索触发词（内置的有：最新、新闻、价格、比分、查一下、搜一下…）
+# overrides            内置提示词的替换文字：键是内置段落的名称（见控制台「提示词」页），不写或留空 = 用内置文字
+# skills_mode          keyword 这句话（或上一句）提到「指令」页里某条指令的名称时才带上它的说明 | always 每句话都带上全部指令
+# tool_keywords        放音乐和内置动作（写代码、改外观、看看我、邀请玩小游戏）的触发词；不写 = 用内置的，清空 = 每句话都带上
+# search_use_fallback  主用聊天模型不支持联网搜索时，需要搜索的问题改由备选里能搜索的模型回答
+# speech_repair        朗读语言是日语/英语、模型却漏写朗读内容时，自动补翻译一次（多一次很小的模型调用）
+order: []
+format_rules: ''
+knowledge: []
+expression_notes: {}
+motion_notes: {}
+search_keywords: []
+overrides: {}
+skills_mode: keyword
+search_use_fallback: true
+speech_repair: true

@@ -1,0 +1,13 @@
+/* Shared by every console page (imported once in main.ts). A page's scoped styles still win over these. */
+.hint {
+  font-size: 0.9em;
+  opacity: 0.65;
+}
+.error {
+  font-size: 0.9em;
+  color: #d03050;
+}
+.ok {
+  font-size: 0.9em;
+  color: #18a058;
+}

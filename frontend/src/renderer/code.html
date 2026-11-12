@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>代码</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #1e1e24; color: #e6e6ee; font: 13px "Microsoft YaHei UI", sans-serif; }
+      body { display: flex; flex-direction: column; }
+      header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #33333d; }
+      #title { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #lang { font-size: 11px; padding: 1px 8px; border-radius: 8px; background: #33333d; opacity: 0.85; }
+      #lang:empty { display: none; }
+      button { font: inherit; color: inherit; background: #3a3a48; border: 0; border-radius: 6px; padding: 5px 14px; cursor: pointer; }
+      button:hover { background: #4a4a5c; }
+      button.ok { background: #2f7d4f; }
+      main { flex: 1; min-height: 0; overflow: auto; }
+      pre { margin: 0; padding: 14px; font: 12.5px/1.6 Consolas, "Cascadia Mono", monospace; tab-size: 2; white-space: pre; user-select: text; }
+      #empty { padding: 30px; text-align: center; opacity: 0.6; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span id="title">代码</span><span id="lang"></span>
+      <button id="copy" type="button">复制</button>
+    </header>
+    <main><pre id="code"></pre><div id="empty">还没有代码。让桌宠帮你写一段吧。</div></main>
+    <script type="module" src="./code/main.ts"></script>
+  </body>
+</html>

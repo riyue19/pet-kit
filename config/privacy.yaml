@@ -1,0 +1,64 @@
+# 隐私设置（M6）：屏幕感知遵守这里的名单。控制台「感知」页可编辑；改完立即生效，无需重启。
+# 进程名不区分大小写、整名匹配（任务管理器「详细信息」里的名称，如 chrome.exe）；标题关键词不区分大小写、包含即匹配。
+#
+# block_*：黑名单。命中的窗口绝不截图、不评论，标题也不会写进事件和日志。网银、支付、密码管理器、无痕浏览等。
+# quiet_*：免打扰。命中的窗口在前台时桌宠不主动说话（会议、录屏、直播）。
+block_processes:
+- keepass.exe
+- keepassxc.exe
+- 1password.exe
+- bitwarden.exe
+- dashlane.exe
+- enpass.exe
+- alipay.exe
+- 支付宝.exe
+- cmb.exe
+- icbc.exe
+- ccb.exe
+- abchina.exe
+- boc.exe
+- tdxw.exe
+- hexin.exe
+- eastmoney.exe
+- thsfin.exe
+block_titles:
+- 银行
+- 网银
+- 支付
+- 付款
+- 收银台
+- 钱包
+- 证券
+- 股票交易
+- 密码
+- password
+- 验证码
+- 身份证
+- 医保
+- 社保
+- 病历
+- 隐私
+- 无痕
+- InPrivate
+- Incognito
+quiet_processes:
+- wemeetapp.exe
+- zoom.exe
+- teams.exe
+- ms-teams.exe
+- webex.exe
+- lark meeting.exe
+- obs64.exe
+- obs32.exe
+- bdcam.exe
+- camtasia.exe
+- livehime.exe
+- douyin_live.exe
+quiet_titles:
+- 腾讯会议
+- 会议中
+- 飞书会议
+- 钉钉会议
+- 正在共享
+- 共享屏幕
+- 直播中

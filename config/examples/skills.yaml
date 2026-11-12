@@ -1,0 +1,82 @@
+# 技能白名单示例（M8）。复制为 config/skills.yaml 后使用（那个文件里有本机程序路径，不进 git）；也可以在控制台「指令」页编辑。
+# LLM 只能调用这里登记的技能，并且只能从下面的 targets 里选。改完立即生效，无需重启。
+# LLM 只给出技能名和目标 id；程序路径、URL、参数全部来自本文件，它无法让桌宠运行名单之外的东西。
+# 只有主人和桌宠说话（文字/语音/热键）时才会提供技能；屏幕评论和主动搭话不会。
+#
+# enabled: 总开关。false = 不告诉 LLM 有任何技能，什么都不会执行。
+# confirm_timeout_seconds: 需要确认的技能，等待主人点「允许」的时间，超时按拒绝处理。
+# skills.<技能名>:
+#   enabled: 该技能开关
+#   confirm: true = 执行前桌宠弹窗，主人点「允许」才执行（删除文件、支付、发消息之类危险操作必须开）
+#   targets.<id>: id 用小写字母/数字/下划线。每个目标二选一：
+#     exe + args : 直接启动程序（不经过 shell）。exe 写绝对路径，或 PATH 里的名字
+#     url        : 打开 URL scheme（如 steam://、orpheus://）
+#     search_url : 仅 play_music，含 {query}（会做 URL 编码），用于按歌名搜索播放；不写就只打开软件
+#     credential : 需要登录时，Windows 凭据管理器里服务名 pet-kit/skill 下的用户名；
+#                  其密码会替换 args 里的 {secret}。密码只由技能代码读取，不会进入 LLM、日志或事件。
+#                  注意命令行参数本机其他进程可见，能用 URL / 官方客户端自带的登录态就别用。
+#
+# 内置动作（不启动任何程序，没有 targets，只有 enabled / confirm 两项；不写 = 开启、不确认）：
+#   show_code   : 把一段代码显示在桌面的代码窗口里
+#   set_style   : 修改桌宠自己的外观（气泡、输入框的 CSS），主人看到预览后决定保留还是还原
+#   look_camera : 主人说「看看我」时抽一帧摄像头画面（摄像头开着并在工作时才会提供）
+#   invite_game : 邀请主人玩小游戏（弹窗询问；「小游戏」页的「允许主动邀请」另外控制它不请自来）
+enabled: true
+confirm_timeout_seconds: 30.0
+skills:
+  open_app:
+    enabled: true
+    confirm: false
+    targets:
+      notepad:
+        label: 记事本
+        exe: notepad.exe
+        args: []
+        url:
+        search_url:
+        credential:
+      calculator:
+        label: 计算器
+        exe: calc.exe
+        args: []
+        url:
+        search_url:
+        credential:
+  play_music:
+    enabled: true
+    confirm: false
+    targets:
+      netease_music:
+        label: 网易云
+        exe:
+        args: []
+        url: orpheus://
+        search_url:
+        credential:
+  open_game:
+    enabled: true
+    confirm: false
+    targets:
+      steam:
+        label: Steam
+        exe:
+        args: []
+        url: steam://open/main
+        search_url:
+        credential:
+  show_code:
+    enabled: true
+    confirm: false
+    targets: {}
+  set_style:
+    enabled: true
+    confirm: false
+    targets: {}
+  look_camera:
+    enabled: true
+    confirm: false
+    targets: {}
+  invite_game:
+    enabled: true
+    confirm: false
+    targets: {}

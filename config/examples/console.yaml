@@ -1,0 +1,21 @@
+# 控制台外观示例。实际文件 config/console.yaml 由控制台「界面」页保存（含自定义 CSS 等个人内容，不进 git）。
+# 主题："auto" 跟随系统 / "light" 浅色 / "dark" 深色
+theme: auto
+# 强调色，形如 "#8c6cff"
+accent: "#8c6cff"
+# 字号（像素），整数，范围 [12, 20]
+font_size: 14
+# 控制台样式："default" 默认 / "round" 圆润 / "sharp" 方正 / "warm" 暖色
+console_style: default
+# 桌宠输入框样式："default" 深色胶囊 / "light" 浅色 / "glass" 毛玻璃 / "outline" 描边 / "pixel" 像素方框
+input_style: default
+# 桌宠气泡样式："default" 白色圆角 / "dark" 深色 / "pink" 粉色可爱 / "glass" 毛玻璃 / "pixel" 像素方框
+bubble_style: default
+# 自定义 CSS（各最多 20000 字符）。pet_css 作用于桌宠窗口，console_css 作用于控制台。
+# 气泡 #bubble，输入框 #chat-input；变量 --b-bg --b-fg --b-border --b-radius --b-shadow / --i-bg --i-fg --i-border --i-radius 等。
+pet_css: ""
+console_css: ""
+# 控制台左侧菜单的顺序（页面名列表；在菜单上按住拖动即可在同一组里调整，松手自动保存）。空 = 默认顺序。
+nav_order: []
+# 样式方案：「界面」页保存的命名快照（控制台样式、输入框与气泡样式、两段自定义 CSS）。
+styles: []

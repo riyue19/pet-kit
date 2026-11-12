@@ -1,0 +1,27 @@
+# 桌宠前端配置示例（Electron）。复制为 config/frontend.yaml 后使用（那个文件里有你选的模型，不进 git）；
+# 模型也可以直接在控制台「形象」页选择。所有字段都可省略，省略时使用下面写出的默认值。
+
+model:
+  # 模型目录放到 frontend/public/live2d/models/<名字>/ 下，
+  # 这里填 "live2d/models/<名字>/<名字>.model3.json"（相对 frontend/public，不能是绝对路径，不能含 ".."）。
+  # 留空表示尚未配置模型，界面会给出提示。
+  path: ""
+  # 模型缩放："auto" 表示自动适应窗口；也可以填数字，范围 (0, 10]。
+  scale: auto
+  # 构图："full" 全身；"half" 半身（只显示模型上方一部分，自动放大填满窗口）。
+  framing: full
+  # 半身时显示模型上方多少比例，范围 [0.2, 1]。0.55 大致是腰部以上。
+  half_ratio: 0.55
+
+window:
+  width: 400 # 窗口宽度（DIP），整数，100 ~ 4000
+  height: 600 # 窗口高度（DIP），整数，100 ~ 4000
+  x: null # 窗口左上角 x（屏幕 DIP 坐标，多显示器可为负）；null = 主屏工作区右下角
+  y: null # 窗口左上角 y；null = 主屏工作区右下角
+  always_on_top: true # 是否置顶
+
+eye_tracking:
+  fps: 30 # 视线跟随鼠标的采样频率，整数，1 ~ 60
+
+hit_test:
+  alpha_threshold: 10 # 点击穿透的透明度阈值，整数，0 ~ 255；像素 alpha 高于它才算点中模型

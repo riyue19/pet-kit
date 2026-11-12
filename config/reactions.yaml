@@ -1,0 +1,24 @@
+# 互动反应（pet.interaction 事件）：点击桌宠的头/身体时的规则层反应，先便宜后昂贵。
+# 后端每次触发时重新读取，改完立即生效。
+#
+# cooldown_seconds:     两次互动反应的最小间隔（秒），间隔内的点击忽略。
+# llm_cooldown_seconds: 交给 LLM 即兴回应的最小间隔（秒），防止狂点刷调用。
+# interactions.<区域>:   区域 head = 头部，body = 身体
+#   lines:       随机说一句（空列表 = 不说话）
+#   expressions: 随机做一个表情（标签，需在模型的表情映射里存在，否则忽略）
+#   motions:     随机做一个动作（标签，同上）
+#   llm_chance:  0~1，交给 LLM 即兴回应的概率（还要满足 llm_cooldown_seconds，且已指定聊天 LLM）
+
+cooldown_seconds: 1.5
+llm_cooldown_seconds: 30
+interactions:
+  head:
+    lines: ["嘿嘿~", "别摸啦，发型要乱了！", "再摸就收费了哦。"]
+    expressions: [happy, shy]
+    motions: []
+    llm_chance: 0.15
+  body:
+    lines: ["干嘛戳我？", "呀！", "有什么事吗？"]
+    expressions: [surprised, confused, angry]
+    motions: [wave]
+    llm_chance: 0.15

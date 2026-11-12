@@ -1,0 +1,67 @@
+# 全局快捷键（M5）。控制台「快捷键」页可视化编辑；保存后立即重新注册，无需重启。
+# 只有这里声明的组合键会注册到系统，按键内容不会被记录（CLAUDE.md 4.2）。
+#
+# 每一项：
+#   id                唯一标识，小写字母开头，可含数字和下划线
+#   name              显示名称
+#   keys              组合键，如 Ctrl+Alt+H（修饰键：Ctrl / Alt / Shift / Super(Win)；字母数字需带 Ctrl/Alt/Win，F1~F24 可单独用）
+#   enabled           是否启用
+#   action            builtin：本地动作（不经过后端）
+#                     reaction：固定台词 + 表情/动作（不花钱）
+#                     llm：把 prompt 交给 LLM 自由发挥（花钱，受 cooldown_seconds 限制）
+#   builtin           toggle_visible 显示/隐藏桌宠 | toggle_mic 麦克风开关 | toggle_camera 摄像头开关 | stop_speaking 停止说话 | open_console 打开控制台
+#                     | push_to_talk 按住说话：按住期间录音（麦克风常开关着也行），松开立即识别并发给桌宠
+#   lines/expressions/motions   reaction 用：随机选一句台词 / 一个表情标签 / 一个动作标签
+#   prompt            llm 用：告诉桌宠发生了什么，例如「（主人按下了快捷键，想听你夸夸他）」
+#   cooldown_seconds  两次触发的最短间隔（秒）
+hotkeys:
+  - id: toggle_pet
+    name: 显示 / 隐藏桌宠
+    keys: Alt+C
+    enabled: false
+    action: builtin
+    builtin: toggle_visible
+  - id: toggle_mic
+    name: 麦克风开关
+    keys: Alt+V
+    enabled: false
+    action: builtin
+    builtin: toggle_mic
+  - id: toggle_camera
+    name: 摄像头开关
+    keys: Alt+B
+    enabled: false
+    action: builtin
+    builtin: toggle_camera
+  - id: stop_talking
+    name: 别说了
+    keys: Alt+S
+    enabled: false
+    action: builtin
+    builtin: stop_speaking
+  - id: open_console
+    name: 打开控制台
+    keys: Alt+C
+    enabled: false
+    action: builtin
+    builtin: open_console
+  - id: push_to_talk
+    name: 按住说话
+    keys: Ctrl+Alt+Space
+    enabled: true
+    action: builtin
+    builtin: push_to_talk
+  - id: greet
+    name: 打个招呼
+    keys: Alt+N
+    enabled: true
+    action: llm
+    prompt: （主人按下了快捷键，想跟你打招呼）
+    cooldown_seconds: 3
+  - id: praise
+    name: 夸夸我
+    keys: Alt+H
+    enabled: true
+    action: llm
+    prompt: （主人按下了快捷键，想听你夸夸他。夸得具体一点，可以结合你记得的事）
+    cooldown_seconds: 10

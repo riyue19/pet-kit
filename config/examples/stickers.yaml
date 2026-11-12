@@ -1,0 +1,7 @@
+# 表情包清单示例。实际文件 config/stickers.yaml 由控制台「表情包」页管理，一般不用手改（含个人内容，不进 git）。
+# 图片在 data/stickers/<file>（不进 git）。启用的备注名会发给模型，模型回复里填哪个备注名就发哪张图。
+# stickers[].id / file  程序生成，不要改
+# stickers[].name       备注名（最长 20 个字，不能重复，不能含引号、反斜杠、{} [] 或换行）
+# stickers[].enabled    false = 留着但不告诉模型
+
+stickers: []
