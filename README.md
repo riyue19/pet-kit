@@ -10,7 +10,7 @@
 
 安装中途失败（多半是网络问题）时，窗口会说明是哪一步。解决后重新双击 `安装.bat` 即可，已完成的步骤会跳过。
 
-Cubism Core 是 Live2D 的专有软件，可在此编辑live2d模型，使用前请阅读 Live2D 官网上的 Live2D Proprietary Software 许可协议。
+安装时会下载 Live2D 的 Cubism Core，它是显示 Live2D 模型用的运行库，属于 Live2D 的专有软件，使用前请阅读 Live2D 官网上的 Live2D Proprietary Software 许可协议。制作或修改模型需要用 Live2D 官方的 Cubism Editor。
 
 ## 用法
 
