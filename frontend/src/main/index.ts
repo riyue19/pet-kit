@@ -25,6 +25,8 @@ import { IPC, type ModelLayout, type PetState, type RendererConfig, type UiSetti
 import { DEFAULT_UI, applyCssProposal, loadUiConfig, saveUiConfig } from './ui-config'
 import type { PetStyle } from '../shared/ui-style'
 import { FISHING_OFF, type FishingState } from '../shared/fishing'
+import { topModeFor, type TopMode } from '../shared/fullscreen'
+import { createForegroundReader, type ForegroundReader } from './foreground'
 import {
   DEFAULT_ACTION_MAP,
   MAX_CHAT_CHARS,
@@ -518,6 +520,55 @@ function createTray(): void {
  */
 function keepOnTop(w: BrowserWindow): void {
   w.setAlwaysOnTop(true, 'floating')
+  startFullscreenWatch(w)
+}
+
+const FULLSCREEN_POLL_MS = 1000
+let fullscreenTimer: NodeJS.Timeout | null = null
+let raisedOverFullscreen = false
+
+/**
+ * A fullscreen video or borderless game is a topmost window opened after the pet, so it covers it.
+ * While such a window is in front on the pet's monitor, raise the pet above it once a second. The taskbar
+ * is hidden in that state, so this can't cover the tray; as soon as the shell (Start menu, tray flyout,
+ * taskbar) or an ordinary window is in front, stop raising and fall back to plain 'floating'.
+ * Exclusive-fullscreen games bypass the desktop compositor and can't be drawn over at all.
+ */
+function startFullscreenWatch(w: BrowserWindow): void {
+  let reader: ForegroundReader | null = null
+  try {
+    reader = createForegroundReader()
+  } catch (e) {
+    console.warn('[pet] 读取前台窗口失败，全屏时不会自动置顶：', e instanceof Error ? e.message : e)
+  }
+  if (!reader) return
+  const hwnd = Number(w.getNativeWindowHandle().readBigUInt64LE(0))
+  fullscreenTimer = setInterval(() => {
+    if (w.isDestroyed() || !w.isVisible()) return
+    let mode: TopMode = 'normal'
+    try {
+      mode = topModeFor(reader.read(hwnd), process.pid)
+    } catch {
+      mode = 'normal'
+    }
+    if (mode === 'keep') return
+    if (mode === 'raise') {
+      if (!raisedOverFullscreen) {
+        raisedOverFullscreen = true
+        w.setAlwaysOnTop(true, 'screen-saver')
+      }
+      w.moveTop()
+    } else if (raisedOverFullscreen) {
+      raisedOverFullscreen = false
+      w.setAlwaysOnTop(true, 'floating')
+    }
+  }, FULLSCREEN_POLL_MS)
+}
+
+function stopFullscreenWatch(): void {
+  if (fullscreenTimer) clearInterval(fullscreenTimer)
+  fullscreenTimer = null
+  raisedOverFullscreen = false
 }
 
 function createWindow(cfg: FrontendConfig): void {
@@ -563,6 +614,7 @@ function createWindow(cfg: FrontendConfig): void {
   win.once('ready-to-show', () => win?.showInactive())
   win.on('closed', () => {
     stopDrag()
+    stopFullscreenWatch()
     win = null
   })
 

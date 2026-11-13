@@ -306,6 +306,8 @@ export interface StatusStat {
 export interface StatusConfig {
   enabled: boolean
   stats: StatusStat[]
+  /** Change records kept (oldest dropped first); 0 = keep all. Missing from an older backend. */
+  keep_history?: number
 }
 
 export interface StatusLive {
@@ -329,11 +331,21 @@ export interface StatusRecent {
 export interface StatusState {
   config: StatusConfig
   stats: StatusLive[]
-  /** Newest first. */
+  /** Newest first, only the newest few (page with GET /api/status/history). */
   recent: StatusRecent[]
+  /** Records kept in total. Missing from an older backend. */
+  recent_total?: number
   /** Limits of the form. Missing from a backend older than these fields. */
   max_stats?: number
   max_tiers?: number
+  max_keep_history?: number
+}
+
+/** GET /api/status/history?offset=&limit= */
+export interface StatusHistory {
+  /** Newest first. */
+  items: StatusRecent[]
+  total: number
 }
 
 export interface VoiceSave {
@@ -996,4 +1008,4 @@ export type BackendResult<T = unknown> =
 
 /** Only these API paths may be reached through the console proxy; only logs/events/history/memories take a query string. */
 export const BACKEND_PATH_RE =
-  /^\/api\/(?:health|llm|llm\/key|llm\/test|voice|voice\/key(?:\?provider=(?:minimax|cosyvoice|openai))?|voice\/test|voice\/voices|voice\/heard|prompt|prompt\/preview|persona|memory|memory\/summarize|screen|screen\/look|screen\/weather|camera|camera\/look|skills|skills\/installed|privacy\/off|status|status\/value|fishing|fishing\/(?:command|settings|hook|simulate)|fishing\/hud(?:\?after=\d{1,9})?|games|games\/settings|games\/(?:roulette|rps|dice|auction|taboo)\/(?:start|quit)|games\/roulette\/(?:move|pet)|games\/rps\/(?:pick|chat)|games\/dice\/(?:move|pet|next)|games\/auction\/play|games\/taboo\/say|history\/days|history\/delete|history\/summarized-count(?:\?keep_recent=\d{1,6})?|(?:logs|events|history|memories)(?:\?[A-Za-z0-9_=&%.~*'()!-]*)?)$/
+  /^\/api\/(?:health|llm|llm\/key|llm\/test|voice|voice\/key(?:\?provider=(?:minimax|cosyvoice|openai))?|voice\/test|voice\/voices|voice\/heard|prompt|prompt\/preview|persona|memory|memory\/summarize|screen|screen\/look|screen\/weather|camera|camera\/look|skills|skills\/installed|privacy\/off|status|status\/value|status\/history(?:\?offset=\d{1,8}&limit=\d{1,3})?|fishing|fishing\/(?:command|settings|hook|simulate)|fishing\/hud(?:\?after=\d{1,9})?|games|games\/settings|games\/(?:roulette|rps|dice|auction|taboo)\/(?:start|quit)|games\/roulette\/(?:move|pet)|games\/rps\/(?:pick|chat)|games\/dice\/(?:move|pet|next)|games\/auction\/play|games\/taboo\/say|history\/days|history\/delete|history\/summarized-count(?:\?keep_recent=\d{1,6})?|(?:logs|events|history|memories)(?:\?[A-Za-z0-9_=&%.~*'()!-]*)?)$/

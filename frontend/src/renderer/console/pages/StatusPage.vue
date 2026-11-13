@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import {
   NAlert,
   NButton,
@@ -14,6 +14,9 @@ import {
   NGridItem,
   NInput,
   NInputNumber,
+  NPagination,
+  NRadio,
+  NRadioGroup,
   NPopconfirm,
   NSpace,
   NSpin,
@@ -30,8 +33,11 @@ import { errorText } from '../store'
 import { useTask } from '../task'
 import {
   AFFECTION_ID,
+  DEFAULT_KEEP_HISTORY,
+  HISTORY_PAGE_SIZES,
   dirty,
   formError,
+  loadHistory,
   loadStatus,
   newStat,
   refreshLive,
@@ -54,9 +60,34 @@ let timer: number | null = null
 
 onMounted(() => {
   // Re-read unless there are unsaved edits, so hand edits to status.yaml aren't silently overwritten.
-  if (!status.loaded || !dirty.value) void loadStatus()
-  else void refreshLive()
+  void (!status.loaded || !dirty.value ? loadStatus() : refreshLive()).then(loadHistory)
   timer = window.setInterval(() => void refreshLive(), REFRESH_MS)
+})
+
+// New records arrive at the front: refresh the page in view when the newest record or the count changes.
+watch(
+  () => [status.recent[0]?.ts, status.recentTotal, status.history.page, status.history.pageSize],
+  () => void loadHistory()
+)
+
+// "全部保留" ↔ keep_history 0; the number box keeps the last count so switching back restores it.
+let lastKeep = DEFAULT_KEEP_HISTORY
+const keepAll = computed({
+  get: () => status.form.keep_history === 0,
+  set: (all: boolean) => {
+    if (all) {
+      if (status.form.keep_history) lastKeep = status.form.keep_history
+      status.form.keep_history = 0
+    } else status.form.keep_history = lastKeep
+  }
+})
+const keepCount = computed({
+  get: () => (status.form.keep_history ? status.form.keep_history : lastKeep),
+  set: (v: number | null) => {
+    if (v == null) return
+    lastKeep = v
+    if (status.form.keep_history !== 0) status.form.keep_history = v
+  }
 })
 onUnmounted(() => {
   if (timer !== null) clearInterval(timer)
@@ -178,18 +209,57 @@ const colorOf = (id: string): string => status.saved.stats.find((s) => s.id === 
         </n-space>
       </n-card>
 
-      <n-card title="最近的变化" size="small">
-        <n-empty v-if="status.recent.length === 0" size="small" description="还没有变化。开启后和它聊聊天吧" />
-        <div v-else class="recent">
-          <div v-for="(r, i) in status.recent.slice(0, 12)" :key="`${r.ts}-${r.id}-${i}`" class="recent-row">
-            <span class="r-time">{{ time(r.ts) }}</span>
-            <span class="r-name">{{ r.name }}</span>
-            <b class="r-delta" :style="{ color: r.delta > 0 ? colorOf(r.id) : undefined }" :class="{ down: r.delta < 0 }">{{ signed(r.delta) }}</b>
-            <span class="r-value">→ {{ +r.value.toFixed(2) }}</span>
-            <span class="r-reason" :title="r.reason">{{ r.reason || '（没说原因）' }}</span>
-            <n-tag v-if="r.tier" size="tiny" round :bordered="false" type="warning">进入「{{ r.tier }}」</n-tag>
+      <n-card title="变化记录" size="small">
+        <template #header-extra>
+          <span class="hint">共 {{ status.recentTotal }} 条</span>
+        </template>
+        <n-space vertical :size="12">
+          <div class="keep">
+            <span>保留</span>
+            <n-radio-group v-model:value="keepAll" size="small">
+              <n-radio :value="false">
+                最近
+                <n-input-number
+                  v-model:value="keepCount"
+                  size="tiny"
+                  :min="1"
+                  :max="status.maxKeepHistory"
+                  :precision="0"
+                  :disabled="keepAll"
+                  :show-button="false"
+                  style="width: 80px; display: inline-flex; margin: 0 4px"
+                />
+                条
+              </n-radio>
+              <n-radio :value="true">全部保留</n-radio>
+            </n-radio-group>
+            <span class="hint">超出的旧记录会被删掉（点下方「保存」后生效）。只是记录，不影响数值本身。</span>
           </div>
-        </div>
+          <n-alert v-if="status.history.error" type="error" :show-icon="false">{{ status.history.error }}</n-alert>
+          <n-empty v-if="status.recentTotal === 0" size="small" description="还没有变化。开启后和它聊聊天吧" />
+          <n-spin v-else :show="status.history.loading" size="small">
+            <div class="recent">
+              <div v-for="(r, i) in status.history.items" :key="`${r.ts}-${r.id}-${i}`" class="recent-row">
+                <span class="r-time">{{ time(r.ts) }}</span>
+                <span class="r-name">{{ r.name }}</span>
+                <b class="r-delta" :style="{ color: r.delta > 0 ? colorOf(r.id) : undefined }" :class="{ down: r.delta < 0 }">{{ signed(r.delta) }}</b>
+                <span class="r-value">→ {{ +r.value.toFixed(2) }}</span>
+                <span class="r-reason" :title="r.reason">{{ r.reason || '（没说原因）' }}</span>
+                <n-tag v-if="r.tier" size="tiny" round :bordered="false" type="warning">进入「{{ r.tier }}」</n-tag>
+              </div>
+            </div>
+          </n-spin>
+          <n-pagination
+            v-if="status.history.total > HISTORY_PAGE_SIZES[0]"
+            v-model:page="status.history.page"
+            v-model:page-size="status.history.pageSize"
+            :item-count="status.history.total"
+            :page-sizes="HISTORY_PAGE_SIZES"
+            show-size-picker
+            size="small"
+            @update:page-size="status.history.page = 1"
+          />
+        </n-space>
       </n-card>
 
       <n-card title="状态值设置">
@@ -302,6 +372,12 @@ const colorOf = (id: string): string => status.saved.stats.find((s) => s.id === 
 .row:hover .adjust,
 .adjust:focus-within {
   opacity: 1;
+}
+.keep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 .recent-row {
   display: flex;

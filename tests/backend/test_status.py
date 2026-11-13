@@ -384,3 +384,53 @@ def test_stopped_reply_does_not_change_values(config_dir):
         _chat(ws)
         body = c.get("/api/status", headers=auth()).json()
         assert body["stats"][0]["value"] == 0 and body["recent"] == []
+
+
+# --- change history: keep_history and paging ------------------------------------------------
+
+
+def _bump(service, n):
+    """n records; record k (1-based) has value k % 90 + 1, so values stay in range and always change."""
+    for k in range(1, n + 1):
+        service.set_value("affection", float(k % 90 + 1))
+
+
+def test_keep_history_trims_oldest(tmp_path):
+    (tmp_path / "status.yaml").write_text("enabled: true\nkeep_history: 3\n", encoding="utf-8")
+    service = StatusService(tmp_path / "status.yaml", tmp_path / "status.json")
+    _bump(service, 5)
+    items, total = service.history(0, 10)
+    assert total == 3 and [x["value"] for x in items] == [6, 5, 4]
+    # Persisted and reloaded as is.
+    again = StatusService(tmp_path / "status.yaml", tmp_path / "status.json")
+    assert again.history(0, 10)[1] == 3
+
+
+def test_keep_history_zero_keeps_everything(tmp_path):
+    (tmp_path / "status.yaml").write_text("enabled: true\nkeep_history: 0\n", encoding="utf-8")
+    service = StatusService(tmp_path / "status.yaml", tmp_path / "status.json")
+    _bump(service, 120)
+    items, total = service.history(100, 50)
+    assert total == 120 and [x["value"] for x in items] == [float(k % 90 + 1) for k in range(20, 0, -1)]
+    view = service.view(service.config())
+    assert view["recent_total"] == 120 and len(view["recent"]) == 20 and view["recent"][0]["value"] == 120 % 90 + 1
+
+
+def test_default_keep_history_is_50(tmp_path):
+    service = make_service(tmp_path)
+    assert service.config().keep_history == 50
+    _bump(service, 60)
+    assert service.history(0, 1)[1] == 50
+
+
+def test_history_route_and_trim_on_save(client):
+    for v in range(1, 8):
+        client.post("/api/status/value", headers=auth(), json={"id": "affection", "value": v})
+    r = client.get("/api/status/history?offset=2&limit=3", headers=auth())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 7 and [x["value"] for x in body["items"]] == [5, 4, 3]
+    assert client.get("/api/status/history?limit=0", headers=auth()).status_code == 422
+    put = client.put("/api/status", headers=auth(), json={"enabled": True, "keep_history": 4})
+    assert put.status_code == 200 and put.json()["recent_total"] == 4
+    assert client.put("/api/status", headers=auth(), json={"keep_history": -1}).status_code == 422

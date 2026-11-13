@@ -31,6 +31,8 @@ describe('BACKEND_PATH_RE', () => {
     '/api/camera/look',
     '/api/status',
     '/api/status/value',
+    '/api/status/history',
+    '/api/status/history?offset=40&limit=20',
     '/api/games',
     '/api/games/roulette/start',
     '/api/games/roulette/pet',

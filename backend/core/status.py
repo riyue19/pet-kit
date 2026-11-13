@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import time
-from collections import deque
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -21,7 +20,8 @@ from core.status_config import Stat, StatusChange, StatusConfig, fmt
 log = logging.getLogger(__name__)
 
 STATE_FILE = "status.json"
-MAX_RECENT = 50
+# GET /api/status carries only the newest few; the 状态 page pages through history().
+RECENT_IN_VIEW = 20
 
 
 @dataclass
@@ -53,7 +53,8 @@ class StatusService:
         self._day = ""
         # Rise per stat on `_day`, for Stat.daily_up.
         self._gained: dict[str, float] = {}
-        self._recent: deque[dict[str, Any]] = deque(maxlen=MAX_RECENT)
+        # Oldest first; trimmed to StatusConfig.keep_history (0 = keep everything).
+        self._recent: list[dict[str, Any]] = []
         # What the pet window animates for the last manual edit; None when it changed nothing.
         self.last_manual: StatusChange | None = None
         self._load()
@@ -139,8 +140,9 @@ class StatusService:
                     ratio=round((new - s.min) / (s.max - s.min), 4),
                 )
             )
-            self._recent.append(
-                {"ts": self._clock(), "id": s.id, "name": s.name, "delta": actual, "value": new, "reason": c.reason, "tier": crossed}
+            self._record(
+                {"ts": self._clock(), "id": s.id, "name": s.name, "delta": actual, "value": new, "reason": c.reason, "tier": crossed},
+                cfg.keep_history,
             )
             log.info("%s %+g → %s%s（%s）", s.name, actual, fmt(new), f"，进入「{crossed}」" if crossed else "", c.reason or "未说明原因")
         if done:
@@ -165,7 +167,10 @@ class StatusService:
         self._values[s.id] = new
         before, after = s.tier_for(old), s.tier_for(new)
         crossed = after.name if after is not None and after is not before else None
-        self._recent.append({"ts": self._clock(), "id": s.id, "name": s.name, "delta": actual, "value": new, "reason": reason, "tier": crossed})
+        self._record(
+            {"ts": self._clock(), "id": s.id, "name": s.name, "delta": actual, "value": new, "reason": reason, "tier": crossed},
+            cfg.keep_history,
+        )
         log.info("%s %+g → %s（%s）", s.name, actual, fmt(new), reason)
         self._save()
         return StatusChange(
@@ -175,7 +180,8 @@ class StatusService:
 
     def set_value(self, stat_id: str, value: float | None) -> bool:
         """Console: set a value by hand (None = back to the initial value). False = no such stat."""
-        s = self.config().stat(stat_id)
+        cfg = self.config()
+        s = cfg.stat(stat_id)
         if s is None:
             return False
         old = self.value(s)
@@ -184,8 +190,9 @@ class StatusService:
         self.last_manual = None
         if new != old:
             reason = "在控制台手动修改"
-            self._recent.append(
-                {"ts": self._clock(), "id": s.id, "name": s.name, "delta": round(new - old, 2), "value": new, "reason": reason, "tier": None}
+            self._record(
+                {"ts": self._clock(), "id": s.id, "name": s.name, "delta": round(new - old, 2), "value": new, "reason": reason, "tier": None},
+                cfg.keep_history,
             )
             before, after = s.tier_for(old), s.tier_for(new)
             self.last_manual = StatusChange(
@@ -209,7 +216,27 @@ class StatusService:
             v = self.value(s)
             tier = s.tier_for(v)
             stats.append({"id": s.id, "value": v, "tier": tier.name if tier else None, "gained_today": self._gained.get(s.id, 0.0)})
-        return {"stats": stats, "recent": list(reversed(self._recent))}
+        return {"stats": stats, "recent": self._recent[::-1][:RECENT_IN_VIEW], "recent_total": len(self._recent)}
+
+    def history(self, offset: int, limit: int) -> tuple[list[dict[str, Any]], int]:
+        """One page of the change history, newest first, and the total count."""
+        newest = self._recent[::-1]
+        return newest[offset : offset + limit], len(newest)
+
+    def trim(self, keep: int) -> int:
+        """Drops the oldest records beyond `keep` (0 = keep everything); returns how many were dropped."""
+        drop = len(self._recent) - keep if keep > 0 else 0
+        if drop <= 0:
+            return 0
+        del self._recent[:drop]
+        self._save()
+        log.info("状态值变化记录超过 %d 条，删掉了最早的 %d 条", keep, drop)
+        return drop
+
+    def _record(self, entry: dict[str, Any], keep: int) -> None:
+        self._recent.append(entry)
+        if keep > 0 and len(self._recent) > keep:
+            del self._recent[: len(self._recent) - keep]
 
     def _roll_day(self) -> None:
         day = self._today()
@@ -239,12 +266,12 @@ class StatusService:
         self._day = str(data.get("day") or "")
         recent = data.get("recent")
         if isinstance(recent, list):
-            self._recent.extend(x for x in recent[-MAX_RECENT:] if isinstance(x, dict))
+            self._recent = [x for x in recent if isinstance(x, dict)]
 
     def _save(self) -> None:
         if self._state_path is None:
             return
-        data = {"values": self._values, "day": self._day, "gained": self._gained, "recent": list(self._recent)}
+        data = {"values": self._values, "day": self._day, "gained": self._gained, "recent": self._recent}
         tmp = self._state_path.with_suffix(".json.tmp")
         try:
             self._state_path.parent.mkdir(parents=True, exist_ok=True)

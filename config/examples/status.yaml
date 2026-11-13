@@ -5,6 +5,7 @@
 # 当前数值不在这里，存在 %LOCALAPPDATA%/pet-kit/status.json。
 #
 # enabled        是否开启状态栏。关闭时不往提示词里加任何内容，数值也不再变化
+# keep_history   数值变化记录保留多少条（超出时先删最旧的），0 = 全部保留；默认 50，最多 100000
 # stats          状态值列表（最多 12 个；id 为 affection 的好感度是内置的，可以改但删不掉）
 #   - id         模型用来指代这个值的名字：小写字母/数字/下划线，字母开头，最多 24 个字符
 #     name       显示名称（最多 12 字）
@@ -21,6 +22,7 @@
 #         name   阶段名（最多 12 字）
 #         prompt 附加提示词（最多 500 字，可以留空）
 enabled: false
+keep_history: 50
 stats:
 - id: affection
   name: 好感度

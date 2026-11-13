@@ -17,6 +17,8 @@ AFFECTION_COLOR = "#ff7eb6"
 MAX_STATS = 12
 MAX_TIERS = 20
 MAX_REASON_CHARS = 20
+DEFAULT_KEEP_HISTORY = 50
+MAX_KEEP_HISTORY = 100000
 LIMIT = 1_000_000
 
 
@@ -148,6 +150,8 @@ class StatusConfig(BaseModel):
     # Off: nothing is added to the prompt and no value changes.
     enabled: bool = False
     stats: list[Stat] = Field(default_factory=lambda: [default_affection()], max_length=MAX_STATS)
+    # How many change records to keep (oldest dropped first); 0 = keep them all.
+    keep_history: int = Field(default=DEFAULT_KEEP_HISTORY, ge=0, le=MAX_KEEP_HISTORY)
 
     @model_validator(mode="after")
     def _check(self) -> "StatusConfig":

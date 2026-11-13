@@ -1,6 +1,6 @@
 import { computed, reactive } from 'vue'
 import { clone } from './util'
-import type { StatusConfig, StatusLive, StatusRecent, StatusStat, StatusState } from '../../shared/backend'
+import type { StatusConfig, StatusHistory, StatusLive, StatusRecent, StatusStat, StatusState } from '../../shared/backend'
 
 interface Store {
   loading: boolean
@@ -17,13 +17,20 @@ interface Store {
   /** Limits of the form, from the backend (the defaults only stand in until it answers). */
   maxStats: number
   maxTiers: number
+  maxKeepHistory: number
+  /** Records kept in total (the backend's count; the history page below pages through them). */
+  recentTotal: number
+  history: { page: number; pageSize: number; items: StatusRecent[]; total: number; loading: boolean; error: string | null }
 }
+
+export const HISTORY_PAGE_SIZES = [10, 20, 50]
+export const DEFAULT_KEEP_HISTORY = 50
 
 export const AFFECTION_ID = 'affection'
 export const STAT_ID_RE = /^[a-z][a-z0-9_]{0,23}$/
 const COLORS = ['#8c6cff', '#4aa8ff', '#31c48d', '#f0a020', '#f2647a', '#b06cf0', '#20b8c8']
 
-const empty = (): StatusConfig => ({ enabled: false, stats: [] })
+const empty = (): StatusConfig => ({ enabled: false, stats: [], keep_history: DEFAULT_KEEP_HISTORY })
 
 export const status = reactive<Store>({
   loading: false,
@@ -36,7 +43,10 @@ export const status = reactive<Store>({
   live: [],
   recent: [],
   maxStats: 12,
-  maxTiers: 20
+  maxTiers: 20,
+  maxKeepHistory: 100000,
+  recentTotal: 0,
+  history: { page: 1, pageSize: 20, items: [], total: 0, loading: false, error: null }
 })
 
 const serialize = (): string => JSON.stringify(status.form)
@@ -49,10 +59,14 @@ function applyLive(s: StatusState): void {
   status.recent = s.recent
   status.maxStats = s.max_stats ?? status.maxStats
   status.maxTiers = s.max_tiers ?? status.maxTiers
+  status.maxKeepHistory = s.max_keep_history ?? status.maxKeepHistory
+  status.recentTotal = s.recent_total ?? s.recent.length
 }
 
 function apply(s: StatusState): void {
   status.form = clone(s.config)
+  // An older backend has no keep_history; the form still shows the default.
+  status.form.keep_history ??= DEFAULT_KEEP_HISTORY
   status.snapshot = serialize()
   status.loaded = true
   applyLive(s)
@@ -142,3 +156,31 @@ export const formError = computed(() => {
   }
   return null
 })
+
+/**
+ * Loads the current history page. An older backend without /api/status/history falls back to the
+ * newest few records that GET /api/status carries.
+ */
+export async function loadHistory(): Promise<void> {
+  const h = status.history
+  const maxPage = Math.max(1, Math.ceil(status.recentTotal / h.pageSize))
+  if (h.page > maxPage) h.page = maxPage
+  h.loading = true
+  try {
+    const offset = (h.page - 1) * h.pageSize
+    const res = await window.petConsole.backend<StatusHistory>('GET', `/api/status/history?offset=${offset}&limit=${h.pageSize}`)
+    if (res.ok) {
+      h.items = res.data.items
+      h.total = res.data.total
+      h.error = null
+    } else if (!res.offline && res.status === 404) {
+      h.items = status.recent.slice(offset, offset + h.pageSize)
+      h.total = status.recent.length
+      h.error = null
+    } else {
+      h.error = res.error || '读取失败'
+    }
+  } finally {
+    h.loading = false
+  }
+}
