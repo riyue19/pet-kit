@@ -2,7 +2,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { instanceName } from '../../frontend/src/main/backend'
+import { endpointFile, instanceName, setConfigDir } from '../../frontend/src/main/backend'
 
 async function dirWith(text: string | null): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'pet-kit-inst-'))
@@ -21,5 +21,14 @@ describe('instanceName', () => {
     expect(instanceName(await dirWith("name: '../测试 copy/'\n"))).toBe('copy')
     expect(instanceName(await dirWith("name: ''\n"))).toBe('pet-kit')
     expect(instanceName(await dirWith('name: 123\n'))).toBe('pet-kit')
+  })
+})
+
+describe('endpointFile', () => {
+  it('follows the config folder set at startup', async () => {
+    setConfigDir(await dirWith('name: pet-test\n'))
+    expect(endpointFile()).toMatch(/[\\/]pet-test[\\/]backend\.json$/)
+    setConfigDir(await dirWith(null))
+    expect(endpointFile()).toMatch(/[\\/]pet-kit[\\/]backend\.json$/)
   })
 })

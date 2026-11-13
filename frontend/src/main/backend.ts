@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { parse } from 'yaml'
 import { BACKEND_PATH_RE, type BackendMethod, type BackendResult } from '../shared/backend'
 
@@ -36,7 +36,16 @@ export function runtimeDir(configDir: string): string {
   return join(base, instanceName(configDir))
 }
 
-export function endpointFile(configDir = resolve(__dirname, '../../config')): string {
+// Set once at startup by the main process (same folder it reads frontend.yaml from). Guessing it from
+// __dirname is wrong once bundled (out/main/), which silently pointed a named copy at the default one.
+let configRoot: string | null = null
+
+export function setConfigDir(dir: string): void {
+  configRoot = dir
+}
+
+export function endpointFile(configDir: string | null = configRoot): string {
+  if (configDir === null) throw new Error('setConfigDir() was not called')
   return join(runtimeDir(configDir), 'backend.json')
 }
 

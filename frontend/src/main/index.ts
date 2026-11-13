@@ -7,7 +7,7 @@ import { loadFrontendConfig, type FrontendConfig } from './config'
 import { PetLink } from './pet-link'
 import { captureMainProcess, captureRenderer, FrontendLog } from './logger'
 import { HotkeyManager, readHotkeysFile, saveHotkeys } from './hotkeys'
-import { backendRequest, instanceName, runtimeDir, uploadImage } from './backend'
+import { backendRequest, instanceName, runtimeDir, setConfigDir, uploadImage } from './backend'
 import { registerCodeIpc, showCode } from './code-window'
 import type { Hotkey, HotkeysState } from '../shared/hotkeys'
 import type { VoiceState } from '../shared/backend'
@@ -59,6 +59,7 @@ function pickPetStyle(ui: UiSettings): PetStyle {
 // Shares the backend's log folder (%LOCALAPPDATA%/<instance>/logs).
 // Stack traces (and so log file:line) point at src/*.ts instead of the bundled out/main/index.js.
 process.setSourceMapsEnabled(true)
+setConfigDir(configDir())
 const flog = new FrontendLog(join(runtimeDir(configDir()), 'logs'))
 captureMainProcess(flog)
 // Mirrors the backend's asr.listen; the microphone permission is only granted while this is true.

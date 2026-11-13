@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { backendRequest } from '../../frontend/src/main/backend'
+import { backendRequest, setConfigDir } from '../../frontend/src/main/backend'
 import { BACKEND_PATH_RE } from '../../frontend/src/shared/backend'
 
 describe('BACKEND_PATH_RE', () => {
@@ -101,6 +101,7 @@ describe('backendRequest', () => {
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'pet-proxy-'))
     process.env['LOCALAPPDATA'] = dir
+    setConfigDir(dir) // no instance.yaml there, so the default pet-kit folder
     seen = []
   })
   afterEach(async () => {
