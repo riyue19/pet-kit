@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { parse } from 'yaml'
 import { BACKEND_PATH_RE, type BackendMethod, type BackendResult } from '../shared/backend'
 
 const REQUEST_TIMEOUT_MS = 10 * 60 * 1000
@@ -11,9 +13,31 @@ export interface Endpoint {
   token: string
 }
 
-export function endpointFile(): string {
+/** Which copy this is, from config/instance.yaml; without it, "pet-kit". Mirrors backend/core/paths.py. */
+export function instanceName(configDir: string): string {
+  try {
+    const data = parse(readFileSync(join(configDir, 'instance.yaml'), 'utf8')) as { name?: unknown }
+    const slug =
+      typeof data?.name === 'string'
+        ? data.name
+            .trim()
+            .replace(/[^A-Za-z0-9._-]/g, '-')
+            .replace(/^[.-]+|[.-]+$/g, '')
+            .slice(0, 40)
+        : ''
+    return slug || 'pet-kit'
+  } catch {
+    return 'pet-kit'
+  }
+}
+
+export function runtimeDir(configDir: string): string {
   const base = process.env['LOCALAPPDATA'] ?? join(homedir(), '.local', 'share')
-  return join(base, 'pet-kit', 'backend.json')
+  return join(base, instanceName(configDir))
+}
+
+export function endpointFile(configDir = resolve(__dirname, '../../config')): string {
+  return join(runtimeDir(configDir), 'backend.json')
 }
 
 /** Re-read every call: the backend writes a fresh token each time it starts. */

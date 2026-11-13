@@ -12,7 +12,7 @@ from api.app import create_app
 from api.auth import new_token, remove_endpoint_file, write_endpoint_file
 from core import net
 from core.llm_config import ConfigError, load_backend_config
-from core.paths import CONFIG_DIR, runtime_dir
+from core.paths import CONFIG_DIR, instance_name, runtime_dir
 from core.logs import setup_logging
 from core.memory.factory import build_memory_service, resolve_db_path
 from core.credentials import KeyStore
@@ -42,7 +42,11 @@ def main() -> int:
     logging.info("网络代理：%s", cfg.network.proxy)
     token = new_token()
     register_secret(token)
-    port = cfg.server.port
+    # A named copy gets its own port, so two copies can run at once without editing backend.yaml.
+    name = instance_name()
+    port = cfg.server.port if name == "pet-kit" else _port_for(name)
+    if port != cfg.server.port:
+        logging.info("实例「%s」使用端口 %d", name, port)
     keys = KeyStore()
     # Register every stored secret up front: a key pasted into chat is masked even if its profile hasn't been used.
     for profile in cfg.llm.profiles:
@@ -98,6 +102,13 @@ def main() -> int:
     server = uvicorn.Server(config)
     server.run(sockets=[sock])
     return 0
+
+
+def _port_for(name: str) -> int:
+    """A stable port in 8766..9065, picked from the instance name."""
+    import hashlib
+
+    return 8766 + int(hashlib.sha256(name.encode("utf-8")).hexdigest(), 16) % 300
 
 
 if __name__ == "__main__":

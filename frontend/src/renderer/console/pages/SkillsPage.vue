@@ -314,7 +314,7 @@ function confirmPick(): void {
                 <div class="label-row">凭据</div>
                 <n-input v-model:value="r.t.credential" placeholder="凭据管理器里的用户名" />
                 <div class="hint">
-                  Windows 凭据管理器里服务名 pet-kit/skill 下的用户名，其密码会替换参数中的 {{ S }}。注意：命令行参数本机其他进程可见。
+                  Windows 凭据管理器里服务名 {{ lastState?.key_service || 'pet-kit/skill' }} 下的用户名，其密码会替换参数中的 {{ S }}。注意：命令行参数本机其他进程可见。
                 </div>
               </div>
             </n-space>

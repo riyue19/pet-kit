@@ -7,7 +7,7 @@ import { loadFrontendConfig, type FrontendConfig } from './config'
 import { PetLink } from './pet-link'
 import { captureMainProcess, captureRenderer, FrontendLog } from './logger'
 import { HotkeyManager, readHotkeysFile, saveHotkeys } from './hotkeys'
-import { backendRequest, uploadImage } from './backend'
+import { backendRequest, instanceName, runtimeDir, uploadImage } from './backend'
 import { registerCodeIpc, showCode } from './code-window'
 import type { Hotkey, HotkeysState } from '../shared/hotkeys'
 import type { VoiceState } from '../shared/backend'
@@ -56,10 +56,10 @@ let petStyle: PetStyle = pickPetStyle(DEFAULT_UI)
 function pickPetStyle(ui: UiSettings): PetStyle {
   return { inputStyle: ui.inputStyle, bubbleStyle: ui.bubbleStyle, petCss: ui.petCss }
 }
-// Shares %LOCALAPPDATA%/pet-kit/logs with the backend's backend.jsonl.
+// Shares the backend's log folder (%LOCALAPPDATA%/<instance>/logs).
 // Stack traces (and so log file:line) point at src/*.ts instead of the bundled out/main/index.js.
 process.setSourceMapsEnabled(true)
-const flog = new FrontendLog(join(process.env['LOCALAPPDATA'] ?? app.getPath('userData'), 'pet-kit', 'logs'))
+const flog = new FrontendLog(join(runtimeDir(configDir()), 'logs'))
 captureMainProcess(flog)
 // Mirrors the backend's asr.listen; the microphone permission is only granted while this is true.
 let micAllowed = false
@@ -694,6 +694,10 @@ function registerPetIpc(): void {
   })
 }
 
+// The single-instance lock lives in the userData folder, so a named copy needs its own folder to run
+// beside the default one. The default copy keeps Electron's usual folder (its saved state stays).
+const instance = instanceName(configDir())
+if (instance !== 'pet-kit') app.setPath('userData', join(app.getPath('appData'), `pet-frontend-${instance}`))
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {

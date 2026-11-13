@@ -28,6 +28,8 @@ export interface SkillsConfig {
 export interface SkillsState extends SkillsConfig {
   available: string[]
   builtin?: string[]
+  /** Credential-store service name the 凭据 field looks up. Missing from an older backend. */
+  key_service?: string
 }
 
 export interface InstalledApp {

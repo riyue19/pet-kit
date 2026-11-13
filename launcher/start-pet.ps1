@@ -1,11 +1,23 @@
 ﻿# 一键启动桌宠：后台启动后端（若尚未运行）+ 前端（npm run dev），无控制台窗口。
-# 托盘「退出」关闭桌宠后，由本脚本启动的后端也会一并关闭；日志在 %LOCALAPPDATA%\pet-kit\logs\。
+# 托盘「退出」关闭桌宠后，由本脚本启动的后端也会一并关闭。
+# 数据目录：config\instance.yaml 里的 name（没有这个文件就是 pet-kit），日志在 %LOCALAPPDATA%\<name>\logs\。
 # 用法：双击桌面快捷方式（由 create-shortcut.ps1 生成），或
 #   powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File launcher\start-pet.ps1
 
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
-$RuntimeDir = Join-Path $env:LOCALAPPDATA 'pet-kit'
+
+# Which copy this is. Mirrors backend/core/paths.py and frontend/src/main/backend.ts.
+$InstanceName = 'pet-kit'
+$InstanceFile = Join-Path $Root 'config\instance.yaml'
+if (Test-Path $InstanceFile) {
+    if ((Get-Content $InstanceFile -Raw -Encoding UTF8) -match '(?m)^name:\s*[''"]?([^''"#\r\n]+?)[''"]?\s*$') {
+        $slug = ($Matches[1].Trim() -replace '[^A-Za-z0-9._-]', '-').Trim('.-')
+        if ($slug.Length -gt 40) { $slug = $slug.Substring(0, 40) }
+        if ($slug) { $InstanceName = $slug }
+    }
+}
+$RuntimeDir = Join-Path $env:LOCALAPPDATA $InstanceName
 $LogDir = Join-Path $RuntimeDir 'logs'
 $EndpointFile = Join-Path $RuntimeDir 'backend.json'
 $BackendWaitSeconds = 30
@@ -31,8 +43,8 @@ function Start-Hidden([string]$dir, [string]$command, [string]$log) {
         -WorkingDirectory $dir -WindowStyle Hidden -PassThru
 }
 
-# Only one launcher at a time: two backends racing would overwrite each other's backend.json.
-$mutex = New-Object System.Threading.Mutex($false, 'Local\pet-kit-launcher')
+# Only one launcher of this copy at a time: two backends racing would overwrite each other's backend.json.
+$mutex = New-Object System.Threading.Mutex($false, "Local\$InstanceName-launcher")
 if (-not $mutex.WaitOne(0)) { exit 0 }
 
 $backend = $null

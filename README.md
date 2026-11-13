@@ -37,6 +37,18 @@
 
 日志在 `%LOCALAPPDATA%\pet-kit\logs\`。
 
+## 同一台电脑装两份
+
+聊天记录、记忆、状态、钓鱼这些数据存在 `%LOCALAPPDATA%\pet-kit\`，API Key 存在 Windows 凭据管理器里，都不在项目文件夹中。所以同一台电脑上的两份默认共用这些数据，也不能同时运行。
+
+想让第二份独立（比如拿来测试），在运行 `launcher\安装.bat` **之前**，先在第二份的 `config\` 下建一个 `instance.yaml`：
+
+```yaml
+name: pet-test
+```
+
+这样它会用自己的数据文件夹 `%LOCALAPPDATA%\pet-test\`、自己的凭据（`pet-test/llm` 等，API Key 要重新填）、自己的端口，安装时创建的快捷方式叫「桌宠 (pet-test)」，不会覆盖原来的「桌宠」。两份可以同时开。示例见 `config\examples\instance.yaml`。
+
 ## 手动安装
 
 `安装.bat` 做的事情如下，想自己一步步来时可以照着做。

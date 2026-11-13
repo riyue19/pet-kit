@@ -45,3 +45,4 @@ fishing/
 # Claude Code project files (local only)
 CLAUDE.md
 .claude/
+config/instance.yaml

@@ -16,6 +16,7 @@ from urllib.parse import quote
 
 from action.skills.config import BUILTIN_NAMES, BUILTIN_TITLES, SECRET_PLACEHOLDER, SKILL_NAMES, SkillConfig, SkillsConfig
 from core.credentials import KeyStore
+from core.paths import key_service
 from core.llm_config import ConfigError
 from core.persona import load_yaml_model
 
@@ -26,7 +27,7 @@ def _clean(value: object) -> str:
     """LLM-controlled text for log lines: short, one line."""
     return repr(str(value)[:40])
 
-SKILL_KEY_SERVICE = "pet-kit/skill"
+SKILL_KEY_SERVICE = key_service("skill")
 MAX_QUERY_CHARS = 100
 # Which argument names the target for each skill.
 TARGET_PARAM = {"open_app": "app", "play_music": "app", "open_game": "game"}

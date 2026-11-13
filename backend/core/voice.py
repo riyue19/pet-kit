@@ -8,6 +8,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 from core.credentials import KeyStore
+from core.paths import key_service
 from core.llm_config import ConfigError, load_backend_config
 from core.voice_config import AsrConfig, TtsConfig
 from perception.asr import AsrEngine, resolve_model_dir
@@ -15,7 +16,7 @@ from providers.sherpa_asr import SenseVoiceRecognizer, models_ready
 
 log = logging.getLogger(__name__)
 
-TTS_KEY_SERVICE = "pet-kit/tts"
+TTS_KEY_SERVICE = key_service("tts")
 TTS_KEY_NAME = "minimax"
 # After playback stops, the room may still echo for a moment.
 ECHO_TAIL_SECONDS = 1.5

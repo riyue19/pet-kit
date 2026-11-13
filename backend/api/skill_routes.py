@@ -9,6 +9,7 @@ from action.skills.config import BUILTIN_NAMES, SKILL_NAMES, SkillsConfig
 from action.skills.installed import scan_start_menu
 from api.auth import require_token
 from core.llm_config import ConfigError
+from core.paths import key_service
 from core.persona import load_yaml_model, save_yaml_model
 
 log = logging.getLogger(__name__)
@@ -19,6 +20,8 @@ class SkillsOut(SkillsConfig):
     available: list[str] = list(SKILL_NAMES)
     # Built-in actions (no targets). One missing from `skills` is enabled, without confirmation.
     builtin: list[str] = list(BUILTIN_NAMES)
+    # Credential-store service name the 凭据 field looks up, so the page can show the right one.
+    key_service: str = ""
 
 
 def _path(request: Request):
@@ -31,7 +34,7 @@ def get_skills(request: Request) -> SkillsOut:
         cfg = load_yaml_model(_path(request), SkillsConfig)
     except ConfigError as e:
         raise HTTPException(422, str(e)) from None
-    return SkillsOut(**cfg.model_dump())
+    return SkillsOut(**cfg.model_dump(), key_service=key_service("skill"))
 
 
 @router.put("")

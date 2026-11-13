@@ -2,12 +2,14 @@
 
 from collections.abc import Collection
 
+from core.paths import key_service
+
 import keyring
 from keyring.errors import PasswordDeleteError
 
 from core.redact import register_secret
 
-SERVICE = "pet-kit/llm"
+SERVICE = key_service("llm")
 # Windows Credential Manager caps the secret at 2560 bytes (1280 UTF-16 chars).
 MAX_KEY_LENGTH = 1024
 HINT_MIN_LENGTH = 12

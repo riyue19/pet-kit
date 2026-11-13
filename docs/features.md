@@ -4,6 +4,7 @@
 
 - 后端配置：`config/backend.yaml`（端口、LLM 多套配置、用途指定、asr 语音识别、tts 语音合成）。API Key 不在文件里，存 Windows 凭据管理器（keyring 服务名 `pet-kit/llm`，用户名 = 配置名）。
 - 网络代理：`network.proxy`（`direct` 默认 / `system` / 代理 URL，改后重启后端）。默认直连，后端的 LLM、MiniMax、天气三处 HTTP 客户端都不读系统代理，避免代理软件关闭或崩溃但系统代理标志还在时全部立刻连不上。实现在 `backend/core/net.py`，新增 HTTP 客户端必须用 `net.make_client()`（openai 用 `DefaultAsyncHttpxClient(**net.client_kwargs())`）。
+- 多份共存（实例名）：`config/instance.yaml`（不进 git，示例 `config/examples/instance.yaml`）的 `name` 决定这一份用的数据文件夹 `%LOCALAPPDATA%/<name>/`（`backend.json`、日志、`memory.db`、`status.json`、`fishing.db`、`games.json`、`scheduler.json`）、凭据服务名前缀（`<name>/llm`、`<name>/tts`、`<name>/skill`）、启动器互斥锁和 Electron 单实例锁。没有这个文件时 `name` = `pet-kit`，和以前完全一样；本文其他地方写的 `%LOCALAPPDATA%/pet-kit/`、`pet-kit/llm` 等都按这个名字替换。名字不是 `pet-kit` 时，后端端口不用 `server.port`，而是按名字算出一个固定端口（8766~9065，`api/__main__.py` 的 `_port_for`），这样两份能同时运行。名字只保留字母、数字、`.`、`_`、`-`，其余换成 `-`，最多 40 个字符。三处各读一次：后端 `core/paths.py`（`instance_name` / `runtime_dir` / `key_service`）、前端主进程 `src/main/backend.ts`（`instanceName` / `runtimeDir`）、启动器 `launcher/start-pet.ps1`。改名相当于换一份全新数据，旧数据留在原文件夹。指令页「凭据」提示里的服务名来自 `GET /api/skills` 的 `key_service`。
 - 鉴权：后端每次启动生成随机令牌，和端口一起写入 `%LOCALAPPDATA%/pet-kit/backend.json`；Electron 主进程读取后代理控制台请求（路径白名单见 `frontend/src/shared/backend.ts`），令牌不进渲染层。
 - 控制台 LLM 页 / 识图页需要后端在运行，否则显示"后端未运行"并提供重试。
 - 人设：`config/persona.yaml`（名字、system prompt、历史轮数、回复字数上限）；点击反应：`config/reactions.yaml`（头/身体台词、表情/动作标签、交给 LLM 的概率、冷却）。两者每次事件重新读取，改完无需重启。

@@ -4,7 +4,20 @@
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $script = Join-Path $PSScriptRoot 'start-pet.ps1'
-$lnkPath = Join-Path ([Environment]::GetFolderPath('Desktop')) '桌宠.lnk'
+
+# A copy with its own config\instance.yaml name gets its own shortcut, so installing a second copy
+# never repoints the first one's shortcut. Same parsing as start-pet.ps1.
+$InstanceName = 'pet-kit'
+$InstanceFile = Join-Path $Root 'config\instance.yaml'
+if (Test-Path $InstanceFile) {
+    if ((Get-Content $InstanceFile -Raw -Encoding UTF8) -match '(?m)^name:\s*[''"]?([^''"#\r\n]+?)[''"]?\s*$') {
+        $slug = ($Matches[1].Trim() -replace '[^A-Za-z0-9._-]', '-').Trim('.-')
+        if ($slug.Length -gt 40) { $slug = $slug.Substring(0, 40) }
+        if ($slug) { $InstanceName = $slug }
+    }
+}
+$lnkName = if ($InstanceName -eq 'pet-kit') { '桌宠.lnk' } else { "桌宠 ($InstanceName).lnk" }
+$lnkPath = Join-Path ([Environment]::GetFolderPath('Desktop')) $lnkName
 
 $shell = New-Object -ComObject WScript.Shell
 $lnk = $shell.CreateShortcut($lnkPath)
