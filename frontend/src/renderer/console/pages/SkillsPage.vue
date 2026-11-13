@@ -106,9 +106,10 @@ function apply(state: SkillsState): void {
     const s = state.skills[name]
     blocks[name] = { enabled: s?.enabled ?? true, confirm: s?.confirm ?? false, rows: [] }
   }
+  // A skill missing from skills.yaml (fresh install) still gets its card, so targets can be added.
+  // Its defaults match backend/action/skills/config.py SkillConfig: on, no confirmation, no targets.
   for (const name of skillNames(state)) {
-    const s = state.skills[name]
-    if (!s) continue
+    const s = state.skills[name] ?? { enabled: true, confirm: false, targets: {} }
     blocks[name] = {
       enabled: s.enabled,
       confirm: s.confirm,
